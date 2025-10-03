@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-multipart
+google-genai
+sqlite3-binary ; sys_platform == "win32"
+typing-extensions
