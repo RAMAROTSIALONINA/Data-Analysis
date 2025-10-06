@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
-from google.genai.errors import APIError
+
 from typing import Annotated, Optional
 import shutil  
 import tempfile  
