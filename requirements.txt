@@ -1,6 +1,6 @@
 fastapi
 uvicorn
 google-generativeai
-sqlite3-bro
 python-multipart
 aiofiles
+
