@@ -3,4 +3,5 @@ uvicorn
 google-generativeai
 python-multipart
 aiofiles
+python-dotenv
 
