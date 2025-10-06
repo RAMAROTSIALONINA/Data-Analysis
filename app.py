@@ -315,6 +315,17 @@ async def process_multimodal_query(
 
         **INSTRUCTIONS D'ANALYSE DÉTAILLÉE :**
 
+        **PREMIÈREMENT : ANALYSE GLOBALE**
+        Commencez par fournir une analyse globale avec les indicateurs clés :
+        - Chiffre d'affaire total
+        - Taux de vente moyen
+        - Nombre total de transactions
+        - Stock moyen disponible
+        - Valeur totale du stock
+        - Performance globale
+
+        **ENSUITE : DÉTECTION DES ANOMALIES**
+
         Pour CHAQUE fichier, identifiez PRÉCISÉMENT :
         1. **Localisation exacte des anomalies** (ligne, colonne, cellule si possible)
         2. **Nature de l'erreur** avec explication claire
@@ -346,6 +357,9 @@ async def process_multimodal_query(
         - Opportunités d'optimisation
 
         **FORMAT DE RÉPONSE EXIGÉ :**
+
+        **ANALYSE GLOBALE**
+        [Fournir ici les indicateurs clés globaux]
 
         Pour CHAQUE anomalie détectée, utilisez cette structure :
 

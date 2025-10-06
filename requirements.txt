@@ -1,6 +1,52 @@
-fastapi
-uvicorn
-python-multipart
-google-genai
-sqlite3-binary ; sys_platform == "win32"
-typing-extensions
+# FastAPI & Serveur
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Base de données
+sqlite3
+
+# API Google Gemini
+google-genai==0.3.0
+httpx==0.25.2
+
+# Manipulation de fichiers et données
+python-magic==0.4.27
+pandas==2.1.3
+openpyxl==3.1.2
+xlrd==2.0.1
+
+# Traitement PDF
+PyPDF2==3.0.1
+pdf2image==1.16.3
+pillow==10.1.0
+
+# Utilitaires
+python-dotenv==1.0.0
+aiofiles==23.2.1
+asyncio==3.4.3
+
+# Sérialisation
+pydantic==2.5.0
+pydantic-core==2.14.0
+
+# Logging et monitoring
+structlog==23.2.0
+
+# Sécurité
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.1
+
+# CORS
+fastapi-middleware==0.1.0
+
+# Tests (développement seulement)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Développement
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
