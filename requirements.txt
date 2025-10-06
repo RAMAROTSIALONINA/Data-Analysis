@@ -1,7 +1,6 @@
 fastapi
 uvicorn
-google-generativeai
 python-multipart
 aiofiles
 python-dotenv
-
+google-generativeai

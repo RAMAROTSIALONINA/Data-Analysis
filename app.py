@@ -14,34 +14,32 @@ import json
 from datetime import datetime
 import logging
 
-# Configuration logging pour Render
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configuration du logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration Gemini
+# --- Configuration et Initialisation de l'API Gemini ---
+
+# Utilisation d'une variable d'environnement pour plus de sécurité
 API_KEY_NAO = os.getenv("GEMINI_API_KEY", "AIzaSyCCnrruOeLHd5V4gKoDnhoKdXQThHqWKHs")
 
 try:
     client = genai.Client(api_key=API_KEY_NAO) 
-    logger.info("✅ Client Gemini initialisé avec succès")
+    logger.info("Client Gemini initialisé avec succès")
 except Exception as e:
-    logger.error(f"❌ Erreur initialisation API Gemini: {e}")
-    # Ne pas crasher l'application en production
-    client = None
+    logger.error(f"Erreur lors de l'initialisation de l'API: {e}")
+    raise RuntimeError(f"Erreur lors de l'initialisation de l'API: {e}")
 
 app = FastAPI(
-    title="Swis Madagascar - Analyse Intelligente",
+    title="Swis Madagascar - Système d'Analyse Intelligente",
     description="Application de détection automatique des anomalies financières et de stock",
     version="3.0.0"
 )
 
-# CORS pour Render
+# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Pour le développement
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
