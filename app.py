@@ -4,8 +4,8 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from google import genai
-from google.genai.errors import APIError
+import google.generativeai as genai
+from google.api_core import exceptions as APIError
 from typing import Annotated, Optional
 import shutil  
 import tempfile  
@@ -13,6 +13,7 @@ import traceback
 import json
 from datetime import datetime
 import logging
+
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
