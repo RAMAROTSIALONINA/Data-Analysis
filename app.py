@@ -4,8 +4,8 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
-from google.api_core import exceptions as APIError
+from google import genai
+from google.genai.errors import APIError
 from typing import Annotated, Optional
 import shutil  
 import tempfile  
@@ -13,7 +13,9 @@ import traceback
 import json
 from datetime import datetime
 import logging
-
+import base64
+import re
+import time
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +36,7 @@ except Exception as e:
 app = FastAPI(
     title="Swis Madagascar - Système d'Analyse Intelligente",
     description="Application de détection automatique des anomalies financières et de stock",
-    version="3.0.0"
+    version="4.0.0"
 )
 
 # Configuration CORS
@@ -173,6 +175,113 @@ def _cleanup_files(gemini_uploaded_files, temp_file_paths):
             except Exception as e:
                 logger.warning(f"Erreur lors de la suppression du fichier temporaire {temp_file_path}: {e}")
 
+def extract_anomaly_stats(response_text):
+    """Extrait les statistiques d'anomalies de la réponse."""
+    try:
+        # Compter les anomalies par type
+        total_anomalies = len(re.findall(r'🚨\s*\*\*ANOMALIE DÉTECTÉE\*\*', response_text, re.IGNORECASE))
+        financial_anomalies = len(re.findall(r'ANOMALIES FINANCIÈRES', response_text, re.IGNORECASE))
+        stock_anomalies = len(re.findall(r'ERREURS DE STOCK', response_text, re.IGNORECASE))
+        pricing_anomalies = len(re.findall(r'ANOMALIES DE TARIFICATION', response_text, re.IGNORECASE))
+        
+        # Extraire les montants d'impact
+        impact_amounts = re.findall(r'💰 Impact :.*?(\d+[\d\s,]*\.?\d*)\s*(MGA|€|euros?|ariary)', response_text, re.IGNORECASE)
+        total_impact = 0
+        for amount, currency in impact_amounts:
+            try:
+                # Nettoyer le montant
+                clean_amount = amount.replace(' ', '').replace(',', '.')
+                total_impact += float(clean_amount)
+            except ValueError:
+                continue
+        
+        has_critical_issues = total_anomalies > 0
+        
+        return {
+            "total_anomalies": total_anomalies,
+            "financial_anomalies": financial_anomalies,
+            "stock_anomalies": stock_anomalies,
+            "pricing_anomalies": pricing_anomalies,
+            "total_impact": round(total_impact, 2),
+            "has_critical_issues": has_critical_issues,
+            "impact_currency": "MGA" if impact_amounts else "N/A"
+        }
+    except Exception as e:
+        logger.error(f"Erreur lors de l'extraction des stats d'anomalies: {e}")
+        return {
+            "total_anomalies": 0,
+            "financial_anomalies": 0,
+            "stock_anomalies": 0,
+            "pricing_anomalies": 0,
+            "total_impact": 0,
+            "has_critical_issues": False,
+            "impact_currency": "N/A"
+        }
+
+async def call_gemini_api_with_retry(contents, max_retries=3):
+    """Effectue l'appel API avec système de retry et gestion d'erreurs."""
+    
+    models_to_try = [
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-flash', 
+        'gemini-1.5-pro'
+    ]
+    
+    for attempt in range(max_retries):
+        for model in models_to_try:
+            try:
+                logger.info(f"Tentative {attempt + 1} avec modèle: {model}")
+                
+                api_response = client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config={
+                        'temperature': 0.1,
+                        'top_p': 0.8,
+                        'top_k': 40,
+                        'max_output_tokens': 3000
+                    }
+                )
+                
+                logger.info(f"✅ Succès avec le modèle: {model}")
+                return api_response.text, "Succès"
+                
+            except APIError as e:
+                error_msg = str(e).lower()
+                if 'overload' in error_msg or 'unavailable' in error_msg or '503' in str(e):
+                    logger.warning(f"⚠️ Modèle {model} surchargé, tentative suivante...")
+                    continue
+                else:
+                    logger.error(f"❌ Erreur API avec {model}: {e}")
+                    return f"Erreur technique: {str(e)}", "Erreur Technique"
+                    
+            except Exception as e:
+                logger.error(f"❌ Erreur inattendue avec {model}: {e}")
+                continue
+        
+        # Attente avant nouvelle tentative
+        if attempt < max_retries - 1:
+            wait_time = (attempt + 1) * 3
+            logger.info(f"⏳ Attente de {wait_time}s avant nouvelle tentative...")
+            time.sleep(wait_time)
+    
+    # Échec de toutes les tentatives
+    error_msg = """🔧 **Service Temporairement Indisponible**
+
+Nous rencontrons actuellement une forte demande sur notre service d'analyse.
+
+💡 **Que faire ?**
+• Réessayez dans 2-3 minutes
+• Vérifiez votre connexion internet
+• Réduisez le nombre de fichiers si possible
+
+📞 **Assistance**
+Si le problème persiste, contactez notre support technique.
+
+Nous vous remercions de votre patience."""
+    
+    return error_msg, "Service Indisponible"
+
 # --- Endpoints ---
 
 @app.get("/", response_class=HTMLResponse)
@@ -194,7 +303,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "3.0.0"
+        "version": "4.0.0"
     }
 
 @app.post("/api/process_query")
@@ -203,13 +312,12 @@ async def process_multimodal_query(
     thread_id: Annotated[Optional[int], Form(description="ID du thread pour la conversation continue")] = None,
     files: Annotated[list[UploadFile] | None, File(description="Liste de fichiers optionnels")] = None,
 ):
-    """Traite la requête multimodale (texte et/ou fichiers) et enregistre les résultats."""
+    """Traite la requête multimodale avec gestion robuste des erreurs."""
     
-    # Validation des entrées
     if not files or len(files) == 0:
         raise HTTPException(
             status_code=400,
-            detail="Veuillez fournir des fichiers à analyser."
+            detail="Veuillez sélectionner au moins un fichier à analyser."
         )
 
     # Variables de traitement
@@ -217,8 +325,8 @@ async def process_multimodal_query(
     files_info_for_db = []
     temp_file_paths = []
     response_text = ""
-    model_to_use = 'gemini-2.0-flash-exp'
     final_status = "Succès"
+    anomaly_stats = {}
     
     conn = None
     user_message_id = None
@@ -228,9 +336,9 @@ async def process_multimodal_query(
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 1. Gestion du Thread - titre basé sur les fichiers
+        # 1. Gestion du Thread
         file_names = ", ".join([file.filename for file in files if file.filename])
-        prompt_for_title = f"Analyse: {file_names}" if file_names else "Analyse automatique de fichiers"
+        prompt_for_title = f"Analyse: {file_names}" if file_names else "Analyse automatique"
         
         if thread_id is None or thread_id == 0:
             thread_id = _create_new_thread(cursor, prompt_for_title)
@@ -241,9 +349,8 @@ async def process_multimodal_query(
         user_message_id = _save_message(cursor, thread_id, 'user', "Analyse automatique des fichiers déposés", 'En cours')
         
         # 3. Traitement des fichiers
-        is_complex_file = False
         total_file_size = 0
-        max_file_size = 20 * 1024 * 1024  # 20MB limite
+        max_file_size = 20 * 1024 * 1024
         
         file_details = []
         
@@ -251,7 +358,6 @@ async def process_multimodal_query(
             if not file.filename:
                 continue
                 
-            # Vérification de la taille des fichiers
             file_size = file.size or 0
             total_file_size += file_size
             
@@ -260,11 +366,6 @@ async def process_multimodal_query(
                     status_code=400,
                     detail=f"Taille totale des fichiers trop importante ({total_file_size/1024/1024:.1f}MB). Maximum: 20MB"
                 )
-            
-            # Détection de fichiers complexes
-            ext = file.filename.lower().split('.')[-1]
-            if ext in ['xlsx', 'xls', 'csv', 'pdf', 'docx', 'pptx']:
-                is_complex_file = True
 
             # Upload vers Gemini
             temp_file_path = None
@@ -275,7 +376,7 @@ async def process_multimodal_query(
                     temp_file_path = temp.name
                     temp_file_paths.append(temp_file_path)
                 
-                await file.seek(0)  # Reset pour réutilisation
+                await file.seek(0)
                     
                 uploaded_file_gemini = client.files.upload(file=temp_file_path)
                 
@@ -294,144 +395,65 @@ async def process_multimodal_query(
                     
             except Exception as e:
                 logger.error(f"Erreur upload fichier {file.filename}: {e}")
-                final_status = "Erreur Fichier(s)"
+                final_status = "Erreur Fichier"
                 continue
         
         # Sauvegarde des infos fichiers
         if files_info_for_db:
             _save_files_to_message(cursor, user_message_id, files_info_for_db)
-        
-        # Choix du modèle basé sur la complexité
-        if is_complex_file:
-            model_to_use = 'gemini-2.0-flash-exp'
     
-        # 4. Préparation du contenu pour Gemini - analyse automatique DÉTAILLÉE
+        # 4. Préparation du contenu
         file_list_text = "\n".join(file_details)
         
         analysis_prompt = f"""
-        SWIS MADAGASCAR - RAPPORT D'ANALYSE AUTOMATIQUE
+ANALYSE SWIS MADAGASCAR - RAPPORT AUTOMATIQUE
 
-        FICHIERS ANALYSÉS :
-        {file_list_text}
+FICHIERS ANALYSÉS:
+{file_list_text}
 
-        **INSTRUCTIONS D'ANALYSE DÉTAILLÉE :**
+INSTRUCTIONS:
+1. Identifiez les anomalies financières et de stock
+2. Localisez précisément chaque problème
+3. Quantifiez l'impact
+4. Proposez des corrections
 
-        **PREMIÈREMENT : ANALYSE GLOBALE**
-        Commencez par fournir une analyse globale avec les indicateurs clés :
-        - Chiffre d'affaire total
-        - Taux de vente moyen
-        - Nombre total de transactions
-        - Stock moyen disponible
-        - Valeur totale du stock
-        - Performance globale
+FORMAT:
+🚨 ANOMALIE DÉTECTÉE
+📁 Fichier: [Nom]
+📍 Localisation: [Ligne/Colonne]
+🔎 Description: [Problème]
+💰 Impact: [Montant/Quantité]
+✅ Recommandation: [Solution]
 
-        **ENSUITE : DÉTECTION DES ANOMALIES**
-
-        Pour CHAQUE fichier, identifiez PRÉCISÉMENT :
-        1. **Localisation exacte des anomalies** (ligne, colonne, cellule si possible)
-        2. **Nature de l'erreur** avec explication claire
-        3. **Impact financier** ou opérationnel
-        4. **Recommandation corrective**
-
-        **ANALYSE PAR CATÉGORIE :**
-
-        🔍 **ANOMALIES FINANCIÈRES :**
-        - Incohérences entre montants encaissés et ventes
-        - Écarts de caisse identifiables
-        - Transactions dupliquées ou manquantes
-        - Problèmes de rapprochement
-
-        📊 **ERREURS DE STOCK :**
-        - Différences stock théorique vs physique
-        - Ruptures de stock critiques
-        - Mouvements anormaux
-        - Données manquantes ou incohérentes
-
-        💰 **ANOMALIES DE TARIFICATION :**
-        - Prix incohérents ou aberrants
-        - Remises anormales
-        - Variations de prix suspectes
-
-        📈 **PERFORMANCE COMMERCIALE :**
-        - Tendances anormales
-        - Points de performance exceptionnels
-        - Opportunités d'optimisation
-
-        **FORMAT DE RÉPONSE EXIGÉ :**
-
-        **ANALYSE GLOBALE**
-        [Fournir ici les indicateurs clés globaux]
-
-        Pour CHAQUE anomalie détectée, utilisez cette structure :
-
-        🚨 **ANOMALIE DÉTECTÉE**
-        📁 Fichier : [Nom du fichier]
-        📍 Localisation : [Ligne X, Colonne Y, Feuille Z]
-        🔎 Description : [Description détaillée de l'anomalie]
-        💰 Impact : [Impact financier ou quantitatif]
-        ✅ Recommandation : [Action corrective spécifique]
-
-        **EXEMPLES CONCRETS :**
-
-        🚨 **ANOMALIE DÉTECTÉE**
-        📁 Fichier : ventes_mars.xlsx
-        📍 Localisation : Ligne 45, Colonne D, Feuille "Ventes"
-        🔎 Description : Montant de vente (1 500 000 MGA) ne correspond pas au total des articles
-        💰 Impact : Écart de 250 000 MGA détecté
-        ✅ Recommandation : Vérifier la saisie ligne 45 et corriger le montant
-
-        🚨 **ANOMALIE DÉTECTÉE**  
-        📁 Fichier : stock_physique.csv
-        📍 Localisation : Lignes 23-25, Produit "RX-456"
-        🔎 Description : Stock physique (150 unités) différent du stock théorique (180 unités)
-        💰 Impact : 30 unités manquantes (valeur : 450 000 MGA)
-        ✅ Recommandation : Audit immédiat du produit RX-456
-
-        Présentez les anomalies par ordre de criticité.
-        Soyez exhaustif et précis dans vos détections.
-        """
+Analysez par ordre de criticité.
+"""
         
         contents.append(analysis_prompt)
         
         if not contents:
             raise HTTPException(status_code=400, detail="Aucun contenu valide pour l'analyse.")
 
-        # 5. Appel à l'API Gemini
-        try:
-            logger.info(f"Appel API avec modèle: {model_to_use}")
-            api_response = client.models.generate_content(
-                model=model_to_use,
-                contents=contents,
-                config={
-                    'temperature': 0.1,
-                    'top_p': 0.8,
-                    'top_k': 40
-                }
-            )
-            response_text = api_response.text
-            
-        except APIError as e:
-            final_status = "Erreur API"
-            response_text = f"Erreur lors de l'analyse: {str(e)}"
-            logger.error(f"Erreur API: {e}")
-        except Exception as e:
-            final_status = "Erreur API"
-            response_text = f"Erreur lors du traitement: {str(e)}"
-            logger.error(f"Erreur inattendue: {e}")
+        # 5. Appel API avec gestion robuste
+        response_text, api_status = await call_gemini_api_with_retry(contents)
+        
+        if api_status != "Succès":
+            final_status = api_status
+        else:
+            # Extraction des statistiques d'anomalies
+            anomaly_stats = extract_anomaly_stats(response_text)
 
     except HTTPException:
         raise
     except Exception as e:
-        full_traceback = traceback.format_exc()
-        logger.error(f"Erreur interne: {full_traceback}")
+        logger.error(f"Erreur interne: {traceback.format_exc()}")
         final_status = "Erreur Interne"
-        response_text = f"Erreur interne du serveur: {str(e)}"
+        response_text = f"Une erreur inattendue s'est produite. Veuillez réessayer."
         
     finally:
-        # 6. Sauvegarde finale et nettoyage
+        # 6. Sauvegarde finale
         try:
             if conn:
-                # Sauvegarde réponse assistant
+                # Sauvegarde réponse
                 _save_message(cursor, thread_id, 'assistant', response_text, final_status)
                 
                 # Mise à jour statut message utilisateur
@@ -442,26 +464,28 @@ async def process_multimodal_query(
                     )
                 
                 conn.commit()
-                logger.info(f"Traitement terminé pour thread {thread_id}, statut: {final_status}")
+                logger.info(f"Traitement terminé - Thread: {thread_id}, Statut: {final_status}")
 
         except Exception as db_e:
-            logger.error(f"Erreur BD lors de la sauvegarde finale: {db_e}")
+            logger.error(f"Erreur BD finale: {db_e}")
             
         finally:
-            # Nettoyage des fichiers
+            # Nettoyage
             _cleanup_files(gemini_uploaded_files, temp_file_paths)
-            
             if conn:
                 conn.close()
 
     if final_status != "Succès":
-        raise HTTPException(status_code=500, detail=response_text)
+        raise HTTPException(
+            status_code=500, 
+            detail=response_text if "Erreur technique" not in response_text else "Problème de connexion au service d'analyse"
+        )
 
     return {
         "thread_id": thread_id, 
         "response": response_text,
         "status": final_status,
-        "model_used": model_to_use
+        "anomaly_stats": anomaly_stats
     }
 
 @app.get("/api/history")
@@ -472,13 +496,13 @@ async def get_history(limit: int = 50, offset: int = 0):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Récupération des threads avec pagination
         cursor.execute("""
             SELECT 
                 thread_id, 
                 title, 
                 date_modification,
-                (SELECT COUNT(*) FROM MESSAGES WHERE thread_id = THREADS.thread_id) as message_count
+                (SELECT COUNT(*) FROM MESSAGES WHERE thread_id = THREADS.thread_id) as message_count,
+                (SELECT statut FROM MESSAGES WHERE thread_id = THREADS.thread_id ORDER BY date_message DESC LIMIT 1) as last_status
             FROM THREADS
             ORDER BY date_modification DESC
             LIMIT ? OFFSET ?
@@ -490,10 +514,10 @@ async def get_history(limit: int = 50, offset: int = 0):
                 "id": row["thread_id"],
                 "title": row["title"],
                 "date": row["date_modification"],
-                "message_count": row["message_count"]
+                "message_count": row["message_count"],
+                "last_status": row["last_status"] or "Succès"
             })
             
-        # Nombre total de threads
         cursor.execute("SELECT COUNT(*) as total FROM THREADS")
         total = cursor.fetchone()["total"]
             
@@ -509,7 +533,6 @@ async def get_history(limit: int = 50, offset: int = 0):
     except Exception as e:
         logger.error(f"Erreur récupération historique: {e}")
         raise HTTPException(status_code=500, detail="Impossible de charger l'historique.")
-        
     finally:
         if conn:
             conn.close()
@@ -522,14 +545,12 @@ async def get_thread_detail(thread_id: int):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Vérification existence thread
         cursor.execute("SELECT title FROM THREADS WHERE thread_id = ?", (thread_id,))
         thread_title = cursor.fetchone()
         
         if not thread_title:
-            raise HTTPException(status_code=404, detail="Thread non trouvé.")
+            raise HTTPException(status_code=404, detail="Analyse non trouvée.")
             
-        # Récupération messages avec infos fichiers
         cursor.execute("""
             SELECT 
                 m.message_id, m.sender, m.content, m.date_message, m.statut,
@@ -544,7 +565,6 @@ async def get_thread_detail(thread_id: int):
         messages = []
         for row in cursor.fetchall():
             files = row["fichiers"].split(",") if row["fichiers"] else []
-            # Nettoyage des noms de fichiers
             files = [f.strip() for f in files if f.strip()]
             
             messages.append({
@@ -566,8 +586,7 @@ async def get_thread_detail(thread_id: int):
         raise
     except Exception as e:
         logger.error(f"Erreur détail thread {thread_id}: {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de la récupération du détail.")
-        
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des détails.")
     finally:
         if conn:
             conn.close()
@@ -583,22 +602,21 @@ async def delete_thread(thread_id: int):
         cursor.execute("DELETE FROM THREADS WHERE thread_id = ?", (thread_id,))
         
         if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Thread non trouvé.")
+            raise HTTPException(status_code=404, detail="Analyse non trouvée.")
         
         conn.commit()
         logger.info(f"Thread {thread_id} supprimé")
-        return {"message": f"Thread {thread_id} supprimé avec succès."}
+        return {"message": f"Analyse #{thread_id} supprimée avec succès."}
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Erreur suppression thread {thread_id}: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la suppression.")
-        
     finally:
         if conn:
             conn.close()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

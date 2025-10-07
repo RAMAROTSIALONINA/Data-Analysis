@@ -15,11 +15,42 @@
             --border-color: #e5e7eb;
             --swis-blue: #1e40af;
             --swis-dark: #1e3a8a;
+            --sidebar-bg: #1e3a8a;
             --base-font-size: 1rem;
             --sidebar-width: 350px;
-            --header-height: 80px;
+            --header-height: 70px;
             --button-padding: 0.75rem 1rem;
             --border-radius: 0.75rem;
+        }
+        
+        .theme-professional {
+            --primary-color: #059669;
+            --sidebar-bg: #065f46;
+            --swis-blue: #047857;
+            --swis-dark: #065f46;
+        }
+
+        .theme-dark {
+            --primary-color: #3b82f6;
+            --sidebar-bg: #1f2937;
+            --swis-blue: #374151;
+            --swis-dark: #1f2937;
+            --light-color: #374151;
+            --border-color: #4b5563;
+        }
+
+        .theme-green {
+            --primary-color: #10b981;
+            --sidebar-bg: #047857;
+            --swis-blue: #059669;
+            --swis-dark: #047857;
+        }
+
+        .theme-purple {
+            --primary-color: #8b5cf6;
+            --sidebar-bg: #7c3aed;
+            --swis-blue: #7c3aed;
+            --swis-dark: #6d28d9;
         }
         
         * {
@@ -32,7 +63,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
             margin: 0; 
             padding: 0; 
-            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            background: linear-gradient(135deg, var(--swis-blue) 0%, var(--swis-dark) 100%);
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -40,6 +71,7 @@
             line-height: 1.6;
             overflow: hidden;
             font-size: var(--base-font-size);
+            transition: all 0.3s ease;
         }
         
         .main-wrapper {
@@ -52,10 +84,10 @@
             position: relative;
         }
         
-        /* Panneau de l'Historique - Sidebar */
+        /* Sidebar Historique */
         #history-panel {
             width: var(--sidebar-width); 
-            background: var(--swis-dark); 
+            background: var(--sidebar-bg); 
             color: var(--light-color);
             border-right: 1px solid #374151;
             padding: 0; 
@@ -70,14 +102,10 @@
         .history-header {
             padding: 1.5rem;
             border-bottom: 1px solid #374151;
-            background: linear-gradient(135deg, var(--swis-dark), #1e3a8a);
-        }
-        
-        .history-header h2 {
-            font-size: 1.4em;
-            color: white;
-            margin: 0 0 1rem 0;
-            font-weight: 700;
+            background: linear-gradient(135deg, var(--sidebar-bg), var(--swis-dark));
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         .company-brand {
@@ -124,6 +152,7 @@
         #history-list {
             flex-grow: 1;
             overflow-y: auto;
+            padding-bottom: 1rem;
         }
         
         .history-date-header {
@@ -156,15 +185,18 @@
             background: #374151; 
         }
         
+        .history-item:hover .history-item-delete {
+            opacity: 1;
+        }
+        
         .history-item.active {
             background: var(--swis-blue);
         }
         
-        .history-item-text {
+        .history-item-content {
             flex-grow: 1;
-            font-size: 0.9em;
-            color: #e5e7eb;
-            padding-right: 0.75rem;
+            padding-right: 0.5rem;
+            min-width: 0;
         }
         
         .history-item-title {
@@ -172,6 +204,7 @@
             margin-bottom: 0.375rem;
             font-weight: 500;
             line-height: 1.4;
+            color: #e5e7eb;
         }
         
         .history-item-meta {
@@ -182,22 +215,48 @@
             align-items: center;
         }
         
+        .status-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
         .history-item-delete {
             background: none;
             border: none;
-            color: var(--danger-color);
+            color: #ef4444;
             cursor: pointer;
-            font-weight: bold;
-            padding: 0.375rem 0.625rem;
+            padding: 0.25rem 0.5rem;
             border-radius: 0.375rem;
             transition: all 0.2s ease;
-            opacity: 0.7;
+            opacity: 0;
             font-size: 1.1em;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .history-item-delete:hover {
-            opacity: 1;
-            background: rgba(220, 38, 38, 0.1);
+            background: rgba(239, 68, 68, 0.1);
+            transform: scale(1.1);
         }
 
         /* Conteneur Principal */
@@ -232,7 +291,7 @@
         
         .chat-header {
             background: white;
-            padding: 1.25rem 1.875rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             position: relative;
@@ -240,21 +299,21 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 0.9375rem;
+            gap: 0.75rem;
             min-height: var(--header-height);
         }
         
         .chat-header h1 {
             color: var(--swis-dark);
             margin: 0;
-            font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
             font-weight: 700;
             flex-grow: 1;
         }
         
         .header-actions {
             display: flex;
-            gap: 0.75rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -275,6 +334,7 @@
             text-decoration: none;
             min-height: 2.5rem;
             white-space: nowrap;
+            position: relative;
         }
         
         .header-button:hover:not(:disabled) {
@@ -296,7 +356,7 @@
         }
         
         .header-button.primary:hover:not(:disabled) {
-            background: linear-gradient(135deg, var(--swis-dark), #1e3a8a);
+            background: linear-gradient(135deg, var(--swis-dark), var(--swis-blue));
             transform: translateY(-0.0625rem);
         }
         
@@ -306,12 +366,16 @@
             border: none;
         }
         
-        .header-button.success:hover:not(:disabled) {
-            background: linear-gradient(135deg, #047857, #065f46);
-            transform: translateY(-0.0625rem);
+        .preview-badge {
+            background: #3b82f6;
+            color: white;
+            border-radius: 0.75rem;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 0.3rem;
         }
         
-        /* Indicateur de notifications */
         .notification-indicator {
             position: relative;
         }
@@ -334,21 +398,26 @@
             border: 2px solid white;
         }
         
+        .critical-badge {
+            background: #dc2626;
+            animation: pulse 1.5s infinite;
+        }
+        
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
         
-        /* Modal des notifications */
-        .notifications-modal {
+        /* Modals */
+        .notifications-modal, .settings-modal {
             display: none;
             position: fixed;
             top: var(--header-height);
             right: 1rem;
             background: white;
             border-radius: var(--border-radius);
-            box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.1), 0 0.625rem 0.625rem -0.3125rem rgba(0,0,0,0.04);
+            box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.1);
             z-index: 1000;
             min-width: 18.75rem;
             max-width: 90vw;
@@ -357,21 +426,29 @@
             border: 1px solid var(--border-color);
         }
         
-        .notifications-header {
+        .settings-modal {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 300px;
+            max-height: 80vh;
+        }
+        
+        .notifications-header, .settings-header {
             padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--border-color);
             background: #f8fafc;
             border-radius: var(--border-radius) var(--border-radius) 0 0;
         }
         
-        .notifications-header h3 {
+        .notifications-header h3, .settings-header h3 {
             margin: 0;
             color: var(--swis-dark);
             font-size: 1.1em;
         }
         
-        .notifications-list {
-            padding: 0.5rem;
+        .notifications-list, .settings-content {
+            padding: 1rem;
         }
         
         .notification-item {
@@ -380,11 +457,6 @@
             margin-bottom: 0.5rem;
             background: #fef2f2;
             border-left: 4px solid var(--danger-color);
-            border: 1px solid #fecaca;
-        }
-        
-        .notification-item:last-child {
-            margin-bottom: 0;
         }
         
         .notification-file {
@@ -405,14 +477,65 @@
             color: #6b7280;
         }
         
-        /* Zone de dépôt compacte */
+        .theme-option {
+            margin-bottom: 1.5rem;
+        }
+        
+        .theme-option label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .theme-option select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background: white;
+        }
+        
+        .theme-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        
+        .preview-item {
+            text-align: center;
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .preview-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .preview-item.selected {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        
+        .preview-color {
+            width: 100%;
+            height: 2rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Zone de dépôt */
         .compact-upload-area {
             background: white;
-            padding: 1.25rem 1.875rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            gap: 0.9375rem;
+            gap: 0.75rem;
             flex-wrap: wrap;
             transition: all 0.3s ease;
         }
@@ -478,7 +601,7 @@
         #chat-window { 
             flex-grow: 1; 
             overflow-y: auto; 
-            padding: 1.25rem;
+            padding: 1rem;
             background: var(--light-color);
             transition: all 0.3s ease;
         }
@@ -487,7 +610,7 @@
             padding-bottom: 0;
         }
         
-        /* Styles de Message */
+        /* Messages */
         .message { 
             margin-bottom: 1rem; 
             padding: 1rem; 
@@ -533,8 +656,11 @@
         }
         
         .error-message {
-            background: var(--danger-color);
-            color: white;
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            color: #7f1d1d;
+            text-align: left;
+            max-width: 95%;
         }
         
         .initial-message {
@@ -598,10 +724,6 @@
             border-top: 1px solid rgba(255,255,255,0.3);
         }
         
-        .user-message .message-files {
-            border-top-color: rgba(255,255,255,0.3);
-        }
-        
         .assistant-message .message-files {
             border-top-color: var(--border-color);
             color: #6b7280;
@@ -638,279 +760,12 @@
             40% { transform: scale(1); }
         }
         
-        /* Styles pour les analyses globales */
-        .analysis-summary {
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            border: 2px solid #bae6fd;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin: 1rem 0;
-        }
-        
-        .summary-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            color: var(--swis-dark);
-            font-weight: 600;
-            font-size: 1.1em;
-        }
-        
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .summary-item {
-            background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
-            border-top: 4px solid var(--swis-blue);
-        }
-        
-        .summary-value {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: var(--swis-dark);
-            margin-bottom: 0.25rem;
-        }
-        
-        .summary-label {
-            color: #6b7280;
-            font-size: 0.85em;
-        }
-        
-        /* Styles pour les anomalies */
-        .anomaly-block {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 0.5rem;
-            padding: 0.9375rem;
-            margin: 0.625rem 0;
-            border-left: 4px solid var(--danger-color);
-        }
-        
-        .anomaly-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.625rem;
-            color: var(--danger-color);
-            font-weight: 600;
-        }
-        
-        .anomaly-detail {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 0.5rem 0.75rem;
-            align-items: start;
-        }
-        
-        .anomaly-label {
-            font-weight: 600;
-            color: #374151;
-            white-space: nowrap;
-        }
-        
-        .anomaly-value {
-            color: #6b7280;
-        }
-        
-        /* Interface anomalies seulement */
-        .anomalies-only-view {
-            display: none;
-            padding: 1.25rem;
-            background: #f8fafc;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-        
-        .anomalies-header {
-            background: white;
-            padding: 1.25rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 1.25rem;
-            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
-            border-left: 4px solid var(--danger-color);
-        }
-        
-        .anomalies-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
-            gap: 0.9375rem;
-            margin-bottom: 1.25rem;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 1.25rem;
-            border-radius: 0.625rem;
-            text-align: center;
-            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
-        }
-        
-        .stat-card.critical {
-            border-top: 4px solid var(--danger-color);
-        }
-        
-        .stat-card.warning {
-            border-top: 4px solid var(--warning-color);
-        }
-        
-        .stat-card.info {
-            border-top: 4px solid var(--primary-color);
-        }
-        
-        .stat-number {
-            font-size: 2em;
-            font-weight: 700;
-            margin-bottom: 0.3125rem;
-        }
-        
-        .stat-card.critical .stat-number {
-            color: var(--danger-color);
-        }
-        
-        .stat-card.warning .stat-number {
-            color: var(--warning-color);
-        }
-        
-        .stat-card.info .stat-number {
-            color: var(--primary-color);
-        }
-        
-        .stat-label {
-            color: #6b7280;
-            font-size: 0.9em;
-        }
-        
-        .anomalies-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.9375rem;
-        }
-        
-        .no-anomalies {
-            text-align: center;
-            padding: 2.5rem;
-            color: #6b7280;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
-        }
-        
-        /* Modal amélioré */
-        #data-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 2% auto;
-            padding: 0;
-            border-radius: 1rem;
-            width: 95%;
-            height: 95%;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 1.5625rem 3.125rem -0.75rem rgba(0,0,0,0.5);
-            animation: slideIn 0.3s ease;
-            overflow: hidden;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateY(-3.125rem) scale(0.9); opacity: 0; }
-            to { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        
-        .modal-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: white;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            color: #111827;
-            font-size: clamp(1.2rem, 2.5vw, 1.4rem);
-            font-weight: 700;
-        }
-        
-        #close-modal {
-            color: #6b7280;
-            font-size: 1.75rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s ease;
-            padding: 0.375rem;
-            border-radius: 0.375rem;
-        }
-        
-        #close-modal:hover {
-            color: #374151;
-            background: #f3f4f6;
-        }
-        
-        #modal-content-wrapper {
-            flex-grow: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            background: #f8fafc;
-        }
-        
-        #text-view, #html-view {
-            flex-grow: 1;
-            padding: 1.25rem;
-            overflow: auto;
-            font-size: 1em;
-        }
-        
-        #text-view {
-            font-family: 'Courier New', 'Monaco', monospace;
-            font-size: 0.9em;
-            line-height: 1.5;
-            background: white;
-            border: 1px solid var(--border-color);
-            margin: 0;
-            border-radius: 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        /* Styles pour l'affichage des résultats seulement */
-        .results-only .user-message,
-        .results-only .system-message,
-        .results-only .initial-message {
-            display: none;
-        }
-        
-        .results-only .assistant-message {
-            display: block;
-            max-width: 95%;
-        }
-
-        /* Responsive Design - Mobile First Approach */
+        /* Responsive Design */
         @media (max-width: 1024px) {
             :root {
                 --sidebar-width: 300px;
                 --base-font-size: 0.95rem;
+                --header-height: 60px;
             }
             
             .main-wrapper {
@@ -941,29 +796,33 @@
             }
             
             .chat-header {
-                padding: 0.9375rem 1.25rem;
+                padding: 0.75rem 1rem;
                 flex-direction: column;
                 align-items: stretch;
-                gap: 0.625rem;
+                gap: 0.5rem;
             }
             
             .chat-header h1 {
                 text-align: center;
                 margin-left: 0;
+                font-size: 1.2rem;
             }
             
             .header-actions {
                 justify-content: center;
+                gap: 0.5rem;
             }
             
             .header-button {
                 flex: 1;
                 justify-content: center;
                 min-width: 7.5rem;
+                font-size: 0.85rem;
+                padding: 0.5rem 0.75rem;
             }
             
             #chat-window {
-                padding: 0.9375rem;
+                padding: 0.75rem;
             }
             
             .message {
@@ -974,7 +833,7 @@
             }
             
             .compact-upload-area {
-                padding: 0.9375rem 1.25rem;
+                padding: 0.75rem 1rem;
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -982,7 +841,7 @@
             .upload-info {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 0.625rem;
+                gap: 0.5rem;
             }
             
             .file-display {
@@ -994,22 +853,17 @@
                 grid-template-columns: 1fr;
             }
             
-            .modal-content {
-                margin: 1% auto;
-                width: 98%;
-                height: 98%;
+            .preview-badge {
+                display: none !important;
             }
             
-            .modal-header {
-                padding: 1rem 1.25rem;
+            .theme-preview {
+                grid-template-columns: repeat(2, 1fr);
             }
             
-            .anomalies-stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .summary-grid {
-                grid-template-columns: 1fr;
+            .settings-modal {
+                width: 95vw;
+                margin: 2.5vw;
             }
         }
         
@@ -1020,11 +874,11 @@
             }
             
             .chat-header h1 {
-                font-size: 1.2em;
+                font-size: 1.1em;
             }
             
             .header-button {
-                font-size: 0.85em;
+                font-size: 0.8em;
             }
             
             .message {
@@ -1063,15 +917,15 @@
             }
             
             .chat-header {
-                padding: 0.75rem 0.9375rem;
+                padding: 0.5rem 0.75rem;
             }
             
             .chat-header h1 {
-                font-size: 1.1em;
+                font-size: 1em;
             }
             
             #chat-window {
-                padding: 0.625rem;
+                padding: 0.5rem;
             }
             
             .message {
@@ -1080,7 +934,7 @@
             }
             
             .compact-upload-area {
-                padding: 0.75rem 0.9375rem;
+                padding: 0.5rem 0.75rem;
             }
             
             .file-display {
@@ -1088,22 +942,25 @@
                 padding: 0.375rem 0.625rem;
             }
             
-            .anomaly-detail {
-                grid-template-columns: 1fr;
-                gap: 0.3125rem;
-            }
-            
             .header-actions {
-                gap: 0.5rem;
+                gap: 0.25rem;
             }
             
             .header-button {
                 min-width: auto;
                 flex: 0 1 auto;
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
             }
         }
 
-        /* Styles pour le contenu des messages */
+        /* Amélioration accessibilité */
+        @media (prefers-reduced-motion: reduce) {
+            .critical-badge, .notification-badge {
+                animation: none;
+            }
+        }
+
         .message-content {
             line-height: 1.6;
         }
@@ -1136,37 +993,9 @@
         .assistant-message .message-content code {
             background: #f3f4f6;
         }
-        
-        /* Styles pour les chiffres importants */
-        .important-number {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-weight: bold;
-            margin: 0 0.125rem;
-        }
-        
-        .negative-number {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-weight: bold;
-            margin: 0 0.125rem;
-        }
-        
-        .warning-number {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-weight: bold;
-            margin: 0 0.125rem;
-        }
     </style>
 </head>
-<body onload="loadHistory()">
+<body onload="loadHistory(); initTheme();">
     <div class="main-wrapper">
         <div id="history-panel">
             <div class="history-header">
@@ -1179,7 +1008,7 @@
                 </button>
             </div>
             <div id="history-list">
-                <!-- L'historique sera chargé ici -->
+                <!-- Historique chargé dynamiquement -->
             </div>
         </div>
 
@@ -1192,9 +1021,13 @@
                 <div class="header-actions">
                     <button type="button" id="show-data-button" class="header-button" disabled>
                         <span>👁️ Aperçu</span>
+                        <div class="preview-badge" id="preview-badge" style="display: none;">0 fichier(s)</div>
                     </button>
                     <button type="button" id="show-results-button" class="header-button success" disabled>
                         <span>📊 Résultats</span>
+                    </button>
+                    <button type="button" id="theme-toggle" class="header-button" onclick="toggleSettingsModal()">
+                        <span>🎨 Thème</span>
                     </button>
                     <button type="button" id="notifications-button" class="header-button notification-indicator">
                         <span>🔔</span>
@@ -1206,17 +1039,50 @@
                 </div>
             </div>
 
+            <!-- Modal des paramètres -->
+            <div class="settings-modal" id="settings-modal">
+                <div class="settings-header">
+                    <h3>⚙️ Paramètres d'affichage</h3>
+                </div>
+                <div class="settings-content">
+                    <div class="theme-option">
+                        <label>Thème de couleur :</label>
+                        <select id="theme-selector" onchange="selectTheme(this.value)">
+                            <option value="swis-blue">Bleu SWIS</option>
+                            <option value="professional">Professionnel</option>
+                            <option value="dark">Sombre</option>
+                            <option value="green">Vert</option>
+                            <option value="purple">Violet</option>
+                        </select>
+                    </div>
+                    <div class="theme-preview">
+                        <div class="preview-item" data-theme="swis-blue" onclick="selectTheme('swis-blue')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #1e40af, #1e3a8a)"></div>
+                            <span>SWIS Bleu</span>
+                        </div>
+                        <div class="preview-item" data-theme="professional" onclick="selectTheme('professional')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #059669, #047857)"></div>
+                            <span>Professionnel</span>
+                        </div>
+                        <div class="preview-item" data-theme="dark" onclick="selectTheme('dark')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #374151, #1f2937)"></div>
+                            <span>Sombre</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal des notifications -->
             <div class="notifications-modal" id="notifications-modal">
                 <div class="notifications-header">
                     <h3>🚨 Notifications d'Anomalies</h3>
                 </div>
                 <div class="notifications-list" id="notifications-list">
-                    <!-- Les notifications seront générées ici -->
+                    <!-- Notifications chargées dynamiquement -->
                 </div>
             </div>
 
-            <!-- Zone de dépôt compacte -->
+            <!-- Zone de dépôt -->
             <div class="compact-upload-area" id="compact-upload-area">
                 <div class="upload-info">
                     <input type="file" id="file-input" class="file-input-compact" multiple accept=".xlsx,.xls,.csv,.pdf,.txt,.json,.xml">
@@ -1225,22 +1091,6 @@
                     </button>
                     <div class="file-display" id="file-display">Aucun fichier sélectionné</div>
                     <div class="file-counter" id="file-counter">0 fichier(s)</div>
-                </div>
-            </div>
-            
-            <!-- Interface anomalies seulement -->
-            <div class="anomalies-only-view" id="anomalies-only-view">
-                <div class="anomalies-header">
-                    <h2>🚨 Rapport d'Anomalies Détectées</h2>
-                    <p>Vue consolidée de toutes les anomalies identifiées dans l'analyse</p>
-                </div>
-                
-                <div class="anomalies-stats" id="anomalies-stats">
-                    <!-- Les statistiques seront générées ici -->
-                </div>
-                
-                <div class="anomalies-list" id="anomalies-list">
-                    <!-- La liste des anomalies sera générée ici -->
                 </div>
             </div>
             
@@ -1254,23 +1104,23 @@
                         <div class="features-grid">
                             <div class="feature-item">
                                 <div class="feature-icon">💰</div>
-                                <div class="feature-title">Analyse Financière Complète</div>
-                                <div class="feature-desc">Détection automatique des incohérences financières et écarts de caisse</div>
+                                <div class="feature-title">Analyse Financière</div>
+                                <div class="feature-desc">Détection des incohérences financières et écarts</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">📊</div>
-                                <div class="feature-title">Contrôle de Stock Précis</div>
-                                <div class="feature-desc">Comparaison stock théorique vs physique avec localisation des écarts</div>
+                                <div class="feature-title">Contrôle de Stock</div>
+                                <div class="feature-desc">Comparaison stock théorique vs physique</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">⚠️</div>
                                 <div class="feature-title">Détection d'Anomalies</div>
-                                <div class="feature-desc">Identification précise des erreurs avec localisation dans les fichiers</div>
+                                <div class="feature-desc">Identification précise des erreurs</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">🚨</div>
                                 <div class="feature-title">Rapport Détaillé</div>
-                                <div class="feature-desc">Anomalies classées par criticité avec recommandations correctives</div>
+                                <div class="feature-desc">Recommandations correctives par criticité</div>
                             </div>
                         </div>
                         
@@ -1279,19 +1129,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="data-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Aperçu des Données Brutes - Swis Madagascar</h2>
-                <span id="close-modal">&times;</span>
-            </div>
-            <div id="modal-content-wrapper">
-                <pre id="text-view"></pre>
-                <div id="html-view" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -1307,24 +1144,18 @@
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const historyPanel = document.getElementById('history-panel');
         const compactUploadArea = document.getElementById('compact-upload-area');
-        const anomaliesView = document.getElementById('anomalies-only-view');
-        const anomaliesList = document.getElementById('anomalies-list');
-        const anomaliesStats = document.getElementById('anomalies-stats');
         const notificationBadge = document.getElementById('notification-badge');
         const notificationsButton = document.getElementById('notifications-button');
         const notificationsModal = document.getElementById('notifications-modal');
         const notificationsList = document.getElementById('notifications-list');
+        const previewBadge = document.getElementById('preview-badge');
+        const settingsModal = document.getElementById('settings-modal');
+        const themeSelector = document.getElementById('theme-selector');
         
         // Boutons d'action
         const showDataButton = document.getElementById('show-data-button');
         const showResultsButton = document.getElementById('show-results-button');
         const newAnalysisButton = document.getElementById('new-analysis-button');
-        
-        // Éléments modale
-        const dataModal = document.getElementById('data-modal');
-        const closeModalButton = document.getElementById('close-modal');
-        const textView = document.getElementById('text-view');
-        const htmlView = document.getElementById('html-view');
         
         // Variables d'état
         let currentThreadId = '0';
@@ -1332,7 +1163,6 @@
         let showResultsOnly = false;
         let hasAnalysisResults = false;
         let currentAnomalies = [];
-        let isAnomaliesView = false;
         let notifications = [];
 
         // --- FONCTIONS UTILITAIRES ---
@@ -1354,23 +1184,23 @@
                         <div class="features-grid">
                             <div class="feature-item">
                                 <div class="feature-icon">💰</div>
-                                <div class="feature-title">Analyse Financière Complète</div>
-                                <div class="feature-desc">Détection automatique des incohérences financières et écarts de caisse</div>
+                                <div class="feature-title">Analyse Financière</div>
+                                <div class="feature-desc">Détection des incohérences financières et écarts</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">📊</div>
-                                <div class="feature-title">Contrôle de Stock Précis</div>
-                                <div class="feature-desc">Comparaison stock théorique vs physique avec localisation des écarts</div>
+                                <div class="feature-title">Contrôle de Stock</div>
+                                <div class="feature-desc">Comparaison stock théorique vs physique</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">⚠️</div>
                                 <div class="feature-title">Détection d'Anomalies</div>
-                                <div class="feature-desc">Identification précise des erreurs avec localisation dans les fichiers</div>
+                                <div class="feature-desc">Identification précise des erreurs</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">🚨</div>
                                 <div class="feature-title">Rapport Détaillé</div>
-                                <div class="feature-desc">Anomalies classées par criticité avec recommandations correctives</div>
+                                <div class="feature-desc">Recommandations correctives par criticité</div>
                             </div>
                         </div>
                         
@@ -1382,8 +1212,8 @@
             `;
             resetFileInputs();
             showUploadArea();
-            hideAnomaliesView();
             hideNotificationsModal();
+            hideSettingsModal();
             document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
             hideMobileMenu();
             hasAnalysisResults = false;
@@ -1401,6 +1231,7 @@
             showResultsOnly = false;
             chatWindow.classList.remove('results-only');
             showResultsButton.innerHTML = '<span>📊 Résultats</span>';
+            updatePreviewBadge(0);
         }
 
         function hideUploadArea() {
@@ -1411,27 +1242,6 @@
         function showUploadArea() {
             compactUploadArea.classList.remove('hidden');
             chatWindow.classList.remove('chat-window-full');
-        }
-
-        function showAnomaliesView() {
-            chatWindow.style.display = 'none';
-            anomaliesView.style.display = 'block';
-            isAnomaliesView = true;
-            generateAnomaliesReport();
-        }
-
-        function hideAnomaliesView() {
-            chatWindow.style.display = 'block';
-            anomaliesView.style.display = 'none';
-            isAnomaliesView = false;
-        }
-
-        function toggleAnomaliesView() {
-            if (isAnomaliesView) {
-                hideAnomaliesView();
-            } else {
-                showAnomaliesView();
-            }
         }
 
         function showNotificationsModal() {
@@ -1451,12 +1261,36 @@
             }
         }
 
-        // Fermer la modal en cliquant à l'extérieur
+        function showSettingsModal() {
+            settingsModal.style.display = 'block';
+        }
+
+        function hideSettingsModal() {
+            settingsModal.style.display = 'none';
+        }
+
+        function toggleSettingsModal() {
+            if (settingsModal.style.display === 'block') {
+                hideSettingsModal();
+            } else {
+                showSettingsModal();
+            }
+        }
+
+        // Fermer les modales en cliquant à l'extérieur
         document.addEventListener('click', function(event) {
             if (!notificationsModal.contains(event.target) && !notificationsButton.contains(event.target)) {
                 hideNotificationsModal();
             }
+            if (!settingsModal.contains(event.target) && !document.getElementById('theme-toggle').contains(event.target)) {
+                hideSettingsModal();
+            }
         });
+
+        function updatePreviewBadge(fileCount) {
+            previewBadge.textContent = `${fileCount} fichier(s)`;
+            previewBadge.style.display = fileCount > 0 ? 'inline-block' : 'none';
+        }
 
         function appendMessage(text, className, fileInfo = null) {
             const messageDiv = document.createElement('div');
@@ -1471,207 +1305,35 @@
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            
-            // Traitement spécial pour les analyses globales
-            let processedText = text;
-            
-            // Extraction des analyses globales (chiffre d'affaire, taux de vente, etc.)
-            const globalAnalysisMatch = text.match(/ANALYSE GLOBALE[^]*?(?=🚨|ANOMALIE|$)/i);
-            if (globalAnalysisMatch) {
-                const analysisSummary = document.createElement('div');
-                analysisSummary.className = 'analysis-summary';
-                analysisSummary.innerHTML = `
-                    <div class="summary-header">
-                        <span>📈</span>
-                        <span>ANALYSE GLOBALE - SYNTHÈSE</span>
-                    </div>
-                    <div class="summary-grid" id="summary-grid">
-                        <!-- Les indicateurs seront ajoutés dynamiquement -->
-                    </div>
-                `;
-                contentDiv.appendChild(analysisSummary);
-                
-                // Extraire les indicateurs clés
-                const indicators = extractIndicators(globalAnalysisMatch[0]);
-                const summaryGrid = analysisSummary.querySelector('#summary-grid');
-                
-                indicators.forEach(indicator => {
-                    const summaryItem = document.createElement('div');
-                    summaryItem.className = 'summary-item';
-                    summaryItem.innerHTML = `
-                        <div class="summary-value">${indicator.value}</div>
-                        <div class="summary-label">${indicator.label}</div>
-                    `;
-                    summaryGrid.appendChild(summaryItem);
-                });
-                
-                // Retirer la partie analyse globale du texte principal
-                processedText = text.replace(globalAnalysisMatch[0], '');
-            }
-            
-            // Traitement des blocs d'anomalies
-            const anomalyBlocks = processedText.split(/(?=🚨 \*\*ANOMALIE DÉTECTÉE\*\*)/g);
-            
-            if (anomalyBlocks.length > 1) {
-                anomalyBlocks.forEach(block => {
-                    if (block.trim()) {
-                        if (block.includes('🚨 **ANOMALIE DÉTECTÉE**')) {
-                            // C'est un bloc d'anomalie
-                            const anomalyDiv = document.createElement('div');
-                            anomalyDiv.className = 'anomaly-block';
-                            
-                            // Extraction des informations de l'anomalie
-                            const fileMatch = block.match(/📁 Fichier : (.*?)(?=\n|$)/);
-                            const locationMatch = block.match(/📍 Localisation : (.*?)(?=\n|$)/);
-                            const descriptionMatch = block.match(/🔎 Description : (.*?)(?=\n|$)/);
-                            const impactMatch = block.match(/💰 Impact : (.*?)(?=\n|$)/);
-                            const recommendationMatch = block.match(/✅ Recommandation : (.*?)(?=\n|$)/);
-                            
-                            let anomalyHTML = `
-                                <div class="anomaly-header">
-                                    <span>🚨</span>
-                                    <span>ANOMALIE DÉTECTÉE</span>
-                                </div>
-                                <div class="anomaly-detail">
-                            `;
-                            
-                            if (fileMatch) anomalyHTML += `<div class="anomaly-label">📁 Fichier:</div><div class="anomaly-value">${fileMatch[1]}</div>`;
-                            if (locationMatch) anomalyHTML += `<div class="anomaly-label">📍 Localisation:</div><div class="anomaly-value">${locationMatch[1]}</div>`;
-                            if (descriptionMatch) anomalyHTML += `<div class="anomaly-label">🔎 Description:</div><div class="anomaly-value">${descriptionMatch[1]}</div>`;
-                            if (impactMatch) anomalyHTML += `<div class="anomaly-label">💰 Impact:</div><div class="anomaly-value">${impactMatch[1]}</div>`;
-                            if (recommendationMatch) anomalyHTML += `<div class="anomaly-label">✅ Recommandation:</div><div class="anomaly-value">${recommendationMatch[1]}</div>`;
-                            
-                            anomalyHTML += `</div>`;
-                            anomalyDiv.innerHTML = anomalyHTML;
-                            contentDiv.appendChild(anomalyDiv);
-                            
-                            // Ajouter aux anomalies courantes
-                            const anomaly = {
-                                file: fileMatch ? fileMatch[1] : 'Non spécifié',
-                                location: locationMatch ? locationMatch[1] : 'Non spécifié',
-                                description: descriptionMatch ? descriptionMatch[1] : 'Non spécifié',
-                                impact: impactMatch ? impactMatch[1] : 'Non spécifié',
-                                recommendation: recommendationMatch ? recommendationMatch[1] : 'Non spécifié'
-                            };
-                            
-                            currentAnomalies.push(anomaly);
-                            
-                            // Ajouter aux notifications
-                            if (fileMatch && descriptionMatch) {
-                                notifications.push({
-                                    file: fileMatch[1],
-                                    message: descriptionMatch[1],
-                                    type: 'error'
-                                });
-                            }
-                        } else {
-                            // C'est du texte normal
-                            const normalText = formatMessageText(block);
-                            contentDiv.innerHTML += normalText;
-                        }
-                    }
-                });
-            } else {
-                // Texte normal sans anomalies structurées
-                processedText = formatMessageText(processedText);
-                
-                // Mise en forme des chiffres importants
-                processedText = processedText.replace(/(\d+[\d\s,]*\.?\d*)\s*(€|MGA|euros|unités|unités?|articles?|pièces?|ventes?|CA|chiffre)/gi, 
-                    '<span class="important-number">$1 $2</span>');
-                
-                // Mise en forme des écarts négatifs
-                processedText = processedText.replace(/(écart|manquant|perte|déficit|manque)\s*:?\s*(\d+[\d\s,]*\.?\d*)/gi, 
-                    '<span class="negative-number">$1: $2</span>');
-                
-                contentDiv.innerHTML += processedText;
-            }
-
+            contentDiv.innerHTML = formatMessageText(text);
             messageDiv.appendChild(contentDiv);
+            
             chatWindow.appendChild(messageDiv);
             scrollToBottom();
-            
-            // Mettre à jour les notifications
-            updateNotificationBadge();
             
             return messageDiv;
         }
 
-        function extractIndicators(text) {
-            const indicators = [];
-            
-            // Chiffre d'affaire
-            const caMatch = text.match(/chiffre d'affaire[^]*?(\d+[\d\s,]*\.?\d*)\s*(€|MGA)/i);
-            if (caMatch) {
-                indicators.push({
-                    label: "Chiffre d'Affaire",
-                    value: `${caMatch[1]} ${caMatch[2]}`
-                });
-            }
-            
-            // Taux de vente
-            const tauxMatch = text.match(/taux de vente[^]*?(\d+[\d\s,]*\.?\d*)\s*%/i);
-            if (tauxMatch) {
-                indicators.push({
-                    label: "Taux de Vente",
-                    value: `${tauxMatch[1]}%`
-                });
-            }
-            
-            // Nombre de transactions
-            const transactionsMatch = text.match(/transactions[^]*?(\d+[\d\s,]*)/i);
-            if (transactionsMatch) {
-                indicators.push({
-                    label: "Transactions",
-                    value: transactionsMatch[1]
-                });
-            }
-            
-            // Stock moyen
-            const stockMatch = text.match(/stock[^]*?(\d+[\d\s,]*)/i);
-            if (stockMatch) {
-                indicators.push({
-                    label: "Stock Moyen",
-                    value: stockMatch[1]
-                });
-            }
-            
-            // Valeur totale
-            const valeurMatch = text.match(/valeur totale[^]*?(\d+[\d\s,]*\.?\d*)\s*(€|MGA)/i);
-            if (valeurMatch) {
-                indicators.push({
-                    label: "Valeur Totale",
-                    value: `${valeurMatch[1]} ${valeurMatch[2]}`
-                });
-            }
-            
-            // Si pas d'indicateurs détectés, on en crée des génériques
-            if (indicators.length === 0) {
-                indicators.push(
-                    { label: "Fichiers Analysés", value: document.getElementById('file-counter').textContent },
-                    { label: "Anomalies Détectées", value: currentAnomalies.length },
-                    { label: "Statut", value: "Analyse Complète" }
-                );
-            }
-            
-            return indicators;
-        }
-
         function formatMessageText(text) {
-            // Formatage basique du texte avec support markdown simple
+            // Formatage basique du texte
             return text
                 .replace(/\n/g, '<br>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                .replace(/^- (.*$)/gim, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+                .replace(/`(.*?)`/g, '<code>$1</code>');
         }
 
-        function updateNotificationBadge() {
-            if (notifications.length > 0) {
+        function updateNotificationBadge(anomalyStats = null) {
+            if (anomalyStats && anomalyStats.total_anomalies > 0) {
+                notificationBadge.textContent = anomalyStats.total_anomalies;
+                notificationBadge.style.display = 'flex';
+                
+                if (anomalyStats.has_critical_issues) {
+                    notificationBadge.classList.add('critical-badge');
+                } else {
+                    notificationBadge.classList.remove('critical-badge');
+                }
+            } else if (notifications.length > 0) {
                 notificationBadge.textContent = notifications.length;
                 notificationBadge.style.display = 'flex';
             } else {
@@ -1690,7 +1352,6 @@
                 return;
             }
 
-            // Grouper les notifications par fichier
             const notificationsByFile = {};
             notifications.forEach(notif => {
                 if (!notificationsByFile[notif.file]) {
@@ -1714,84 +1375,6 @@
             });
         }
 
-        function generateAnomaliesReport() {
-            if (currentAnomalies.length === 0) {
-                anomaliesList.innerHTML = `
-                    <div class="no-anomalies">
-                        <h3>✅ Aucune anomalie détectée</h3>
-                        <p>L'analyse n'a identifié aucune anomalie dans les fichiers analysés.</p>
-                    </div>
-                `;
-                anomaliesStats.innerHTML = `
-                    <div class="stat-card info">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Anomalies détectées</div>
-                    </div>
-                    <div class="stat-card success">
-                        <div class="stat-number">100%</div>
-                        <div class="stat-label">Conformité</div>
-                    </div>
-                `;
-                return;
-            }
-
-            // Générer les statistiques
-            const criticalCount = currentAnomalies.filter(a => 
-                a.impact.toLowerCase().includes('mga') || 
-                a.impact.toLowerCase().includes('€') ||
-                a.impact.toLowerCase().includes('euro') ||
-                a.impact.match(/\d+/)
-            ).length;
-
-            const warningCount = currentAnomalies.length - criticalCount;
-
-            anomaliesStats.innerHTML = `
-                <div class="stat-card critical">
-                    <div class="stat-number">${criticalCount}</div>
-                    <div class="stat-label">Anomalies critiques</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-number">${warningCount}</div>
-                    <div class="stat-label">Anomalies mineures</div>
-                </div>
-                <div class="stat-card info">
-                    <div class="stat-number">${currentAnomalies.length}</div>
-                    <div class="stat-label">Total anomalies</div>
-                </div>
-            `;
-
-            // Générer la liste des anomalies
-            anomaliesList.innerHTML = '';
-            currentAnomalies.forEach((anomaly, index) => {
-                const isCritical = anomaly.impact.toLowerCase().includes('mga') || 
-                                 anomaly.impact.toLowerCase().includes('€') ||
-                                 anomaly.impact.toLowerCase().includes('euro') ||
-                                 anomaly.impact.match(/\d+/);
-
-                const anomalyElement = document.createElement('div');
-                anomalyElement.className = `anomaly-block ${isCritical ? 'critical' : 'warning'}`;
-                anomalyElement.innerHTML = `
-                    <div class="anomaly-header">
-                        <span>🚨</span>
-                        <span>ANOMALIE #${index + 1} - ${isCritical ? 'CRITIQUE' : 'MINEURE'}</span>
-                    </div>
-                    <div class="anomaly-detail">
-                        <div class="anomaly-label">📁 Fichier:</div>
-                        <div class="anomaly-value">${anomaly.file}</div>
-                        <div class="anomaly-label">📍 Localisation:</div>
-                        <div class="anomaly-value">${anomaly.location}</div>
-                        <div class="anomaly-label">🔎 Description:</div>
-                        <div class="anomaly-value">${anomaly.description}</div>
-                        <div class="anomaly-label">💰 Impact:</div>
-                        <div class="anomaly-value">${anomaly.impact}</div>
-                        <div class="anomaly-label">✅ Recommandation:</div>
-                        <div class="anomaly-value">${anomaly.recommendation}</div>
-                    </div>
-                `;
-                anomaliesList.appendChild(anomalyElement);
-            });
-        }
-
         function showLoadingMessage() {
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message assistant-message loading';
@@ -1801,11 +1384,33 @@
                     <span></span>
                     <span></span>
                 </div>
-                🔍 Analyse en cours - Détection des anomalies et vérification des données...
+                🔍 Analyse en cours - Détection des anomalies...
             `;
             chatWindow.appendChild(loadingDiv);
             scrollToBottom();
             return loadingDiv;
+        }
+
+        // --- GESTION DES THÈMES ---
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('swis-theme') || 'swis-blue';
+            selectTheme(savedTheme);
+        }
+
+        function selectTheme(themeName) {
+            document.body.classList.remove('theme-professional', 'theme-dark', 'theme-green', 'theme-purple');
+            
+            if (themeName !== 'swis-blue') {
+                document.body.classList.add(`theme-${themeName}`);
+            }
+            
+            if (themeSelector) themeSelector.value = themeName;
+            localStorage.setItem('swis-theme', themeName);
+            
+            document.querySelectorAll('.preview-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.theme === themeName);
+            });
         }
 
         // --- GESTION DU RESPONSIVE ---
@@ -1818,7 +1423,6 @@
             historyPanel.classList.remove('mobile-open');
         }
 
-        // Redimensionnement de la fenêtre
         window.addEventListener('resize', function() {
             if (window.innerWidth > 1024) {
                 hideMobileMenu();
@@ -1827,7 +1431,6 @@
 
         // --- GESTION DES FICHIERS ---
 
-        // Gestion de la sélection de fichiers
         fileInput.addEventListener('change', () => {
             handleFiles(fileInput.files);
         });
@@ -1839,143 +1442,16 @@
                 
                 fileDisplay.textContent = `${files.length} fichier(s) - ${(totalSize / 1024 / 1024).toFixed(2)} MB`;
                 fileCounter.textContent = `${files.length} fichier(s)`;
+                updatePreviewBadge(files.length);
                 showDataButton.disabled = false;
                 showResultsButton.disabled = false;
                 
-                // Lancer automatiquement l'analyse
                 setTimeout(() => {
                     startAnalysis(files);
                 }, 500);
             } else {
                 resetFileInputs();
             }
-        }
-
-        // --- GESTION DE LA MODALE ---
-
-        closeModalButton.onclick = () => dataModal.style.display = "none";
-        
-        window.onclick = (event) => {
-            if (event.target === dataModal) {
-                dataModal.style.display = "none";
-            }
-        };
-
-        showDataButton.addEventListener('click', async () => {
-            const files = fileInput.files;
-            if (files.length === 0) return;
-            
-            dataModal.style.display = "block";
-            textView.style.display = 'block';
-            htmlView.style.display = 'none';
-            textView.textContent = "Chargement des données...";
-            htmlView.innerHTML = '';
-
-            try {
-                await previewFiles(files);
-            } catch (error) {
-                textView.textContent = `Erreur lors du chargement: ${error.message}`;
-            }
-        });
-
-        // Gestion du bouton "Résultats seulement"
-        showResultsButton.addEventListener('click', () => {
-            showResultsOnly = !showResultsOnly;
-            if (showResultsOnly) {
-                chatWindow.classList.add('results-only');
-                showResultsButton.innerHTML = '<span>📋 Tout voir</span>';
-            } else {
-                chatWindow.classList.remove('results-only');
-                showResultsButton.innerHTML = '<span>📊 Résultats</span>';
-            }
-        });
-
-        // Gestion du bouton "Notifications"
-        notificationsButton.addEventListener('click', toggleNotificationsModal);
-
-        // Gestion du bouton "Nouvelle analyse"
-        newAnalysisButton.addEventListener('click', showNewDiscussionView);
-
-        async function previewFiles(files) {
-            let allTextContent = 'SWIS MADAGASCAR - APERÇU DES DONNÉES BRUTES\n';
-            allTextContent += '=============================================\n\n';
-            
-            let filesProcessed = 0;
-            const totalFiles = files.length;
-            
-            for (const file of files) {
-                const fileExtension = file.name.split('.').pop().toLowerCase();
-                
-                allTextContent += `FICHIER: ${file.name}\n`;
-                allTextContent += `TAILLE: ${(file.size / 1024 / 1024).toFixed(2)} MB\n`;
-                allTextContent += `TYPE: ${file.type || 'Non spécifié'}\n`;
-                allTextContent += '─'.repeat(50) + '\n';
-                
-                // Fichiers PDF - affichage direct
-                if (fileExtension === 'pdf' && totalFiles === 1) {
-                    await displayPdf(file);
-                    return;
-                }
-                
-                // Fichiers Excel - message informatif
-                if (['xlsx', 'xls'].includes(fileExtension)) {
-                    allTextContent += '[FICHIER EXCEL - CONTENU BINAIRE NON AFFICHABLE]\n';
-                    allTextContent += '→ L\'analyse détectera automatiquement les anomalies dans ce fichier\n\n';
-                    filesProcessed++;
-                    continue;
-                }
-                
-                // Fichiers CSV, texte, JSON
-                if (file.type.startsWith('text/') || ['csv', 'json', 'txt', 'xml'].includes(fileExtension)) {
-                    try {
-                        const content = await readFileAsText(file);
-                        allTextContent += content.substring(0, 20000);
-                        if (content.length > 20000) {
-                            allTextContent += '\n\n... [CONTENU TRONQUÉ POUR L\'APERÇU] ...\n';
-                            allTextContent += `→ ${content.length - 20000} caractères supplémentaires non affichés\n`;
-                        }
-                        allTextContent += '\n\n';
-                    } catch (e) {
-                        allTextContent += `[ERREUR DE LECTURE: ${e.message}]\n\n`;
-                    }
-                } else {
-                    allTextContent += '[TYPE DE FICHIER NON AFFICHABLE EN TEXTE]\n\n';
-                }
-                
-                filesProcessed++;
-            }
-            
-            if (filesProcessed === totalFiles) {
-                textView.textContent = allTextContent || "Aucun contenu à afficher";
-            }
-        }
-
-        function readFileAsText(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = () => reject(new Error('Impossible de lire le fichier'));
-                reader.readAsText(file);
-            });
-        }
-
-        function displayPdf(file) {
-            textView.style.display = 'none';
-            htmlView.style.display = 'block';
-            
-            const objectURL = URL.createObjectURL(file);
-            htmlView.innerHTML = `
-                <div style="height: 100%; display: flex; flex-direction: column;">
-                    <div style="padding: 1rem; background: #f3f4f6; border-bottom: 1px solid #d1d5db; font-weight: 600; color: #374151;">
-                        📄 Aperçu PDF: ${file.name}
-                    </div>
-                    <iframe 
-                        src="${objectURL}" 
-                        style="flex-grow: 1; border: none;"
-                        type="application/pdf"
-                    ></iframe>
-                </div>
-            `;
         }
 
         // --- GESTION DE L'HISTORIQUE ---
@@ -1985,7 +1461,6 @@
                 const response = await fetch('/api/history?limit=100');
                 if (!response.ok) throw new Error('Erreur de chargement de l\'historique');
                 const data = await response.json();
-                
                 displayHistory(data.history);
             } catch (error) {
                 console.error('Erreur historique:', error);
@@ -2045,16 +1520,18 @@
             itemDiv.setAttribute('data-id', item.id);
             
             const time = new Date(item.date).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit'
+                hour: '2-digit', minute: '2-digit'
             });
             
+            const statusClass = item.last_status === 'Succès' ? 'status-success' : 
+                              item.last_status.includes('Erreur') ? 'status-error' : 'status-warning';
+            
             itemDiv.innerHTML = `
-                <div class="history-item-text">
+                <div class="history-item-content">
                     <span class="history-item-title">${item.title}</span>
                     <div class="history-item-meta">
                         <span>${time}</span>
-                        <span>${item.message_count || 0} message(s)</span>
+                        <span class="status-badge ${statusClass}">${item.last_status}</span>
                     </div>
                 </div>
                 <button class="history-item-delete" onclick="event.stopPropagation(); deleteThread(${item.id})" title="Supprimer">
@@ -2089,7 +1566,6 @@
                 chatTitle.textContent = `Swis Madagascar - ${title}`;
                 chatTitle.setAttribute('data-thread-id', id);
                 
-                // Mise à jour visuelle de l'historique
                 document.querySelectorAll('.history-item').forEach(item => {
                     item.classList.remove('active');
                     if (item.getAttribute('data-id') === id.toString()) {
@@ -2105,7 +1581,6 @@
                 const data = await response.json();
                 displayThreadMessages(data);
                 
-                // Activer le bouton résultats si il y a des messages d'assistant
                 const hasAssistantMessages = data.messages.some(msg => msg.sender === 'assistant');
                 showResultsButton.disabled = !hasAssistantMessages;
                 hasAnalysisResults = hasAssistantMessages;
@@ -2118,8 +1593,8 @@
                 chatWindow.innerHTML = `<div class="message system-message error-message">Erreur: ${error.message}</div>`;
             }
             hideMobileMenu();
-            hideAnomaliesView();
             hideNotificationsModal();
+            hideSettingsModal();
         }
 
         function displayThreadMessages(threadData) {
@@ -2133,17 +1608,27 @@
                     ? message.files.join(', ')
                     : null;
                 
-                appendMessage(message.content, senderClass, fileInfo);
-                
+                // Gestion spéciale des messages d'erreur
                 if (message.status !== 'Succès' && message.status !== 'En cours') {
-                    appendMessage(
-                        `⚠️ ${message.status}`,
-                        'system-message error-message'
-                    );
+                    appendMessage(`
+                        <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                                <span>⚠️</span>
+                                <span>Problème lors de l'analyse</span>
+                            </div>
+                            <div style="color: #7f1d1d; font-size: 0.9em;">
+                                ${message.content}
+                            </div>
+                            <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                                <strong>💡 Conseil :</strong> Réessayez l'analyse ou contactez le support si le problème persiste.
+                            </div>
+                        </div>
+                    `, 'error-message');
+                } else {
+                    appendMessage(message.content, senderClass, fileInfo);
                 }
             });
             
-            // Appliquer le filtre résultats si activé
             if (showResultsOnly) {
                 chatWindow.classList.add('results-only');
             }
@@ -2151,26 +1636,19 @@
             updateNotificationBadge();
         }
 
-        // --- LANCEMENT AUTOMATIQUE DE L'ANALYSE ---
+        // --- LANCEMENT DE L'ANALYSE ---
 
         async function startAnalysis(files) {
             if (isProcessing) return;
             
             isProcessing = true;
-            
-            // Masquer la zone de dépôt immédiatement
             hideUploadArea();
-            
-            // Nettoyer la fenêtre de chat
             chatWindow.innerHTML = '';
             currentAnomalies = [];
             notifications = [];
             updateNotificationBadge();
             
-            // Affichage du message utilisateur
-            const fileInfo = files.length > 0 
-                ? `${files.length} fichier(s)`
-                : null;
+            const fileInfo = files.length > 0 ? `${files.length} fichier(s)` : null;
             appendMessage(`Analyse automatique des fichiers déposés - Détection des anomalies en cours...`, 'user-message', fileInfo);
             
             const loadingMessage = showLoadingMessage();
@@ -2201,9 +1679,20 @@
                 
             } catch (error) {
                 chatWindow.removeChild(loadingMessage);
-                appendMessage(`❌ Erreur lors de l'analyse: ${error.message}`, 'system-message error-message');
-                console.error('Erreur:', error);
-                // Réafficher la zone de dépôt en cas d'erreur
+                appendMessage(`
+                    <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                            <span>❌</span>
+                            <span>Échec de l'analyse</span>
+                        </div>
+                        <div style="color: #7f1d1d; font-size: 0.9em;">
+                            ${error.message}
+                        </div>
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                            <strong>💡 Conseil :</strong> Vérifiez votre connexion et réessayez.
+                        </div>
+                    </div>
+                `, 'error-message');
                 showUploadArea();
             } finally {
                 isProcessing = false;
@@ -2212,19 +1701,47 @@
         }
 
         async function handleResponse(data) {
-            // Affichage de la réponse
-            appendMessage(data.response, 'assistant-message');
+            // Vérifier si c'est une erreur
+            if (data.status !== "Succès") {
+                appendMessage(`
+                    <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                            <span>⚠️</span>
+                            <span>Service Temporairement Indisponible</span>
+                        </div>
+                        <div style="color: #7f1d1d; font-size: 0.9em;">
+                            ${data.response}
+                        </div>
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                            <strong>💡 Conseil :</strong> Réessayez dans 2-3 minutes.
+                        </div>
+                    </div>
+                `, 'error-message');
+                showUploadArea();
+                return;
+            }
             
-            // Activer le bouton résultats
+            // Réponse normale
+            appendMessage(data.response, 'assistant-message');
             showResultsButton.disabled = false;
             hasAnalysisResults = true;
             
-            // Gestion du nouveau thread
+            if (data.anomaly_stats) {
+                updateNotificationBadge(data.anomaly_stats);
+                
+                if (data.anomaly_stats.total_anomalies > 0) {
+                    notifications.push({
+                        type: 'summary',
+                        message: `${data.anomaly_stats.total_anomalies} anomalie(s) détectée(s)`,
+                        details: data.anomaly_stats
+                    });
+                }
+            }
+            
             if (currentThreadId === '0') {
                 currentThreadId = data.thread_id.toString();
                 chatTitle.setAttribute('data-thread-id', currentThreadId);
                 
-                // Mise à jour du titre basé sur les fichiers
                 const files = fileInput.files;
                 if (files.length > 0) {
                     const fileNames = Array.from(files).map(f => f.name).join(', ');
@@ -2232,10 +1749,31 @@
                     chatTitle.textContent = `Swis Madagascar - ${newTitle}`;
                 }
                 
-                // Rechargement de l'historique
                 await loadHistory();
             }
         }
+
+        // Événements des boutons
+        showDataButton.addEventListener('click', async () => {
+            const files = fileInput.files;
+            if (files.length > 0) {
+                alert('Fonctionnalité d\'aperçu en développement');
+            }
+        });
+
+        showResultsButton.addEventListener('click', () => {
+            showResultsOnly = !showResultsOnly;
+            if (showResultsOnly) {
+                chatWindow.classList.add('results-only');
+                showResultsButton.innerHTML = '<span>📋 Tout voir</span>';
+            } else {
+                chatWindow.classList.remove('results-only');
+                showResultsButton.innerHTML = '<span>📊 Résultats</span>';
+            }
+        });
+
+        notificationsButton.addEventListener('click', toggleNotificationsModal);
+        newAnalysisButton.addEventListener('click', showNewDiscussionView);
 
         // Initialisation
         showNewDiscussionView();
