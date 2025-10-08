@@ -5,3 +5,4 @@ google-generativeai>=0.8.0
 pydantic
 aiofiles
 jinja2
+pandas

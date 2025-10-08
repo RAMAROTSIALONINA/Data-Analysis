@@ -1,15 +1,15 @@
 import os
-import sqlite3
+import sqlite3 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from google.genai import Client
+from google import genai
 from google.genai.errors import APIError
 from typing import Annotated, Optional
-import shutil
-import tempfile
-import traceback
+import shutil  
+import tempfile  
+import traceback 
 import json
 from datetime import datetime
 import logging
@@ -19,38 +19,29 @@ import time
 import pandas as pd
 import io
 
-# ---------------------
 # Configuration du logging
-# ---------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ---------------------
-# Configuration et Initialisation de l'API Gemini (GenAI)
-# ---------------------
+# --- Configuration et Initialisation de l'API Gemini ---
 
 # Utilisation d'une variable d'environnement pour plus de sécurité
 API_KEY_NAO = os.getenv("GEMINI_API_KEY", "AIzaSyCCnrruOeLHd5V4gKoDnhoKdXQThHqWKHs")
 
 try:
-    client = Client(api_key=API_KEY_NAO)
+    client = genai.Client(api_key=API_KEY_NAO) 
     logger.info("Client Gemini initialisé avec succès")
 except Exception as e:
     logger.error(f"Erreur lors de l'initialisation de l'API: {e}")
     raise RuntimeError(f"Erreur lors de l'initialisation de l'API: {e}")
 
-# ---------------------
-# Création de l'application FastAPI
-# ---------------------
 app = FastAPI(
     title="Swis Madagascar - Système d'Analyse Intelligente",
     description="Application de détection automatique des anomalies financières et de stock",
     version="4.0.0"
 )
 
-# ---------------------
 # Configuration CORS
-# ---------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
