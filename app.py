@@ -1,10 +1,10 @@
 import os
 import sqlite3 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
+from google import genai
 from google.genai.errors import APIError
 from typing import Annotated, Optional
 import shutil  
@@ -16,6 +16,8 @@ import logging
 import base64
 import re
 import time
+import pandas as pd
+import io
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -91,7 +93,8 @@ def init_db():
             nom_fichier VARCHAR(255) NOT NULL,
             taille_ko INTEGER,
             type_mime VARCHAR(100),
-            gemini_file_name VARCHAR(255) NOT NULL, 
+            gemini_file_name VARCHAR(255) NOT NULL,
+            file_content TEXT,
             FOREIGN KEY (message_id) REFERENCES MESSAGES(message_id) ON DELETE CASCADE
         )
     """)
@@ -105,8 +108,32 @@ def init_db():
     conn.close()
     logger.info(f"Base de données '{DB_NAME}' initialisée.")
 
+def update_db_schema():
+    """Met à jour le schéma de la base de données si nécessaire."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    try:
+        # Vérifier si la colonne file_content existe
+        cursor.execute("PRAGMA table_info(FICHIERS_MESSAGES)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if 'file_content' not in columns:
+            logger.info("Ajout de la colonne file_content...")
+            cursor.execute("ALTER TABLE FICHIERS_MESSAGES ADD COLUMN file_content TEXT")
+            conn.commit()
+            logger.info("Colonne file_content ajoutée avec succès.")
+        else:
+            logger.info("La colonne file_content existe déjà.")
+            
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du schéma: {e}")
+    finally:
+        conn.close()
+
 # Initialisation de la base de données
 init_db()
+update_db_schema()
 
 # --- Fonctions utilitaires améliorées ---
 
@@ -153,9 +180,10 @@ def _save_files_to_message(cursor, message_id, file_infos_for_db):
     for f_info in file_infos_for_db:
         cursor.execute(
             """INSERT INTO FICHIERS_MESSAGES 
-               (message_id, nom_fichier, taille_ko, type_mime, gemini_file_name) 
-               VALUES (?, ?, ?, ?, ?)""",
-            (message_id, f_info['display_name'], f_info['size_ko'], f_info['mime_type'], f_info['gemini_file_name'])
+               (message_id, nom_fichier, taille_ko, type_mime, gemini_file_name, file_content) 
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (message_id, f_info['display_name'], f_info['size_ko'], 
+             f_info['mime_type'], f_info['gemini_file_name'], f_info.get('file_content', ''))
         )
 
 def _cleanup_files(gemini_uploaded_files, temp_file_paths):
@@ -282,6 +310,41 @@ Nous vous remercions de votre patience."""
     
     return error_msg, "Service Indisponible"
 
+def read_file_content(file_path, mime_type):
+    """Lit le contenu d'un fichier selon son type."""
+    try:
+        if mime_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
+            # Fichier Excel - lecture limitée
+            try:
+                df = pd.read_excel(file_path, nrows=50)  # Limiter à 50 lignes
+                return f"Fichier Excel: {os.path.basename(file_path)}\n\nAperçu des données (50 premières lignes):\n{df.to_string(max_rows=50, max_cols=10)}"
+            except Exception as e:
+                return f"Fichier Excel: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+        elif mime_type == 'text/csv':
+            # Fichier CSV - lecture limitée
+            try:
+                df = pd.read_csv(file_path, nrows=50)  # Limiter à 50 lignes
+                return f"Fichier CSV: {os.path.basename(file_path)}\n\nAperçu des données (50 premières lignes):\n{df.to_string(max_rows=50, max_cols=10)}"
+            except Exception as e:
+                return f"Fichier CSV: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+        elif mime_type == 'application/pdf':
+            # Fichier PDF - retourne un message indiquant le contenu
+            return f"Fichier PDF: {os.path.basename(file_path)}\n(Taille: {os.path.getsize(file_path)/1024:.2f} KB)\n(Contenu non affiché en aperçu)"
+        elif 'text' in mime_type:
+            # Fichier texte
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    preview = content[:2000] + "..." if len(content) > 2000 else content
+                    return f"Fichier texte: {os.path.basename(file_path)}\n\nContenu:\n{preview}"
+            except Exception as e:
+                return f"Fichier texte: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+        else:
+            return f"Fichier: {os.path.basename(file_path)}\nType: {mime_type}\nTaille: {os.path.getsize(file_path)/1024:.2f} KB\n(Type non supporté pour l'aperçu détaillé)"
+    except Exception as e:
+        logger.error(f"Erreur lecture fichier {file_path}: {e}")
+        return f"Erreur lors de la lecture du fichier: {str(e)}"
+
 # --- Endpoints ---
 
 @app.get("/", response_class=HTMLResponse)
@@ -384,11 +447,15 @@ async def process_multimodal_query(
                     gemini_uploaded_files.append(uploaded_file_gemini)
                     contents.append(uploaded_file_gemini)
                     
+                    # Sauvegarder le contenu du fichier pour l'aperçu
+                    file_content = read_file_content(temp_file_path, uploaded_file_gemini.mime_type)
+                    
                     files_info_for_db.append({
                         'display_name': file.filename,
                         'size_ko': file_size / 1024,
                         'mime_type': uploaded_file_gemini.mime_type,
-                        'gemini_file_name': uploaded_file_gemini.name
+                        'gemini_file_name': uploaded_file_gemini.name,
+                        'file_content': file_content
                     })
                     
                     file_details.append(f"📄 {file.filename} ({(file_size/1024/1024):.2f} MB)")
@@ -587,6 +654,47 @@ async def get_thread_detail(thread_id: int):
     except Exception as e:
         logger.error(f"Erreur détail thread {thread_id}: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des détails.")
+    finally:
+        if conn:
+            conn.close()
+
+@app.get("/api/thread/{thread_id}/files")
+async def get_thread_files(thread_id: int):
+    """Récupère les fichiers et leur contenu pour un thread."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                fm.nom_fichier,
+                fm.file_content,
+                fm.type_mime,
+                fm.taille_ko
+            FROM FICHIERS_MESSAGES fm
+            JOIN MESSAGES m ON fm.message_id = m.message_id
+            WHERE m.thread_id = ?
+            ORDER BY fm.fichier_message_id
+        """, (thread_id,))
+        
+        files_data = []
+        for row in cursor.fetchall():
+            files_data.append({
+                "filename": row["nom_fichier"],
+                "content": row["file_content"],
+                "mime_type": row["type_mime"],
+                "size_kb": row["taille_ko"]
+            })
+        
+        return {
+            "thread_id": thread_id,
+            "files": files_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur récupération fichiers thread {thread_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des fichiers.")
     finally:
         if conn:
             conn.close()

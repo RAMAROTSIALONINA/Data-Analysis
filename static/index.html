@@ -23,20 +23,30 @@
             --border-radius: 0.75rem;
         }
         
+        .theme-white {
+            --primary-color: #2563eb;
+            --sidebar-bg: #ffffff;
+            --swis-blue: #1e40af;
+            --swis-dark: #1e3a8a;
+            --light-color: #ffffff;
+            --border-color: #e5e7eb;
+        }
+
+        .theme-black {
+            --primary-color: #3b82f6;
+            --sidebar-bg: #000000;
+            --swis-blue: #3b82f6;
+            --swis-dark: #1f2937;
+            --light-color: #111827;
+            --border-color: #374151;
+            --dark-color: #000000;
+        }
+
         .theme-professional {
             --primary-color: #059669;
             --sidebar-bg: #065f46;
             --swis-blue: #047857;
             --swis-dark: #065f46;
-        }
-
-        .theme-dark {
-            --primary-color: #3b82f6;
-            --sidebar-bg: #1f2937;
-            --swis-blue: #374151;
-            --swis-dark: #1f2937;
-            --light-color: #374151;
-            --border-color: #4b5563;
         }
 
         .theme-green {
@@ -185,7 +195,7 @@
             background: #374151; 
         }
         
-        .history-item:hover .history-item-delete {
+        .history-item:hover .history-item-actions {
             opacity: 1;
         }
         
@@ -237,26 +247,66 @@
             color: white;
         }
         
-        .history-item-delete {
+        /* Actions des historiques */
+        .history-item-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .history-item-action {
             background: none;
             border: none;
-            color: #ef4444;
+            color: #6b7280;
             cursor: pointer;
-            padding: 0.25rem 0.5rem;
+            padding: 0.5rem;
             border-radius: 0.375rem;
-            transition: all 0.2s ease;
-            opacity: 0;
-            font-size: 1.1em;
-            width: 1.5rem;
-            height: 1.5rem;
+            transition: all 0.3s ease;
+            width: 2rem;
+            height: 2rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.1em;
+            position: relative;
+            overflow: hidden;
         }
         
-        .history-item-delete:hover {
-            background: rgba(239, 68, 68, 0.1);
+        .history-item-action:hover {
+            background: rgba(255, 255, 255, 0.1);
             transform: scale(1.1);
+        }
+        
+        .history-item-action.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .history-item-action.share:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .history-item-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Animation de chargement pour la suppression */
+        .delete-loading {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid #ef4444;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* Conteneur Principal */
@@ -410,7 +460,7 @@
         }
         
         /* Modals */
-        .notifications-modal, .settings-modal {
+        .notifications-modal, .settings-modal, .preview-modal, .share-modal {
             display: none;
             position: fixed;
             top: var(--header-height);
@@ -426,28 +476,219 @@
             border: 1px solid var(--border-color);
         }
         
-        .settings-modal {
+        .settings-modal, .preview-modal, .share-modal {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            min-width: 300px;
+            min-width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            width: auto;
+        }
+        
+        .preview-modal {
+            min-width: 600px;
+            max-width: 95vw;
+            max-height: 85vh;
+        }
+
+        .share-modal {
+            min-width: 500px;
+            max-width: 95vw;
             max-height: 80vh;
         }
         
-        .notifications-header, .settings-header {
+        /* Modal de confirmation */
+        .confirmation-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .confirmation-modal {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 0;
+            max-width: 90vw;
+            width: 400px;
+            box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+        
+        .confirmation-header {
+            padding: 1.5rem 1.5rem 1rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .confirmation-icon {
+            font-size: 3em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirmation-header h3 {
+            margin: 0;
+            color: var(--swis-dark);
+            font-size: 1.3em;
+        }
+        
+        .confirmation-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .confirmation-body p {
+            margin: 0 0 1rem 0;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        
+        .warning-text {
+            color: #ef4444 !important;
+            font-weight: 600;
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .confirmation-actions {
+            padding: 1rem 1.5rem 1.5rem 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        
+        .confirm-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        .cancel-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .cancel-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+        
+        /* Notifications Toast */
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            box-shadow: 0 0.625rem 1.5625rem -0.1875rem rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3b82f6;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10001;
+            max-width: 350px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .toast-success {
+            border-left-color: #10b981;
+        }
+        
+        .toast-error {
+            border-left-color: #ef4444;
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .toast-icon {
+            font-size: 1.2em;
+        }
+        
+        .toast-message {
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        /* Animation pour le modal */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-1rem);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .notifications-header, .settings-header, .preview-header, .share-header {
             padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--border-color);
             background: #f8fafc;
             border-radius: var(--border-radius) var(--border-radius) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .notifications-header h3, .settings-header h3 {
+        .notifications-header h3, .settings-header h3, .preview-header h3, .share-header h3 {
             margin: 0;
             color: var(--swis-dark);
             font-size: 1.1em;
         }
         
-        .notifications-list, .settings-content {
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+        
+        .close-button:hover {
+            background: #f3f4f6;
+        }
+        
+        .notifications-list, .settings-content, .preview-content, .share-content {
             padding: 1rem;
         }
         
@@ -526,6 +767,143 @@
             height: 2rem;
             border-radius: 0.375rem;
             margin-bottom: 0.5rem;
+        }
+        
+        /* Options de partage simplifiées */
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .share-option:hover {
+            border-color: var(--swis-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .share-option.selected {
+            border-color: var(--swis-blue);
+            background: #f0f9ff;
+        }
+
+        .share-icon {
+            font-size: 2em;
+            margin-bottom: 0.5rem;
+        }
+
+        .share-label {
+            font-weight: 600;
+            color: var(--swis-dark);
+            text-align: center;
+        }
+
+        .share-preview {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .share-preview-content {
+            font-size: 0.9em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+
+        .share-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .share-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+
+        .share-input:focus {
+            outline: none;
+            border-color: var(--swis-blue);
+        }
+
+        .email-form {
+            display: none;
+        }
+
+        .email-form.active {
+            display: block;
+        }
+
+        .copy-success {
+            color: var(--success-color);
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .copy-success.show {
+            display: block;
+        }
+        
+        /* Aperçu des données */
+        .preview-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .file-preview {
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .file-preview-header {
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--swis-dark);
+        }
+        
+        .file-preview-content {
+            padding: 1rem;
+            background: white;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .no-preview {
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
         }
         
         /* Zone de dépôt */
@@ -861,9 +1239,14 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             
-            .settings-modal {
+            .settings-modal, .preview-modal, .share-modal {
                 width: 95vw;
                 margin: 2.5vw;
+                min-width: auto;
+            }
+
+            .share-options {
+                grid-template-columns: 1fr;
             }
         }
         
@@ -1019,7 +1402,7 @@
             <div class="chat-header">
                 <h1 id="chat-title" data-thread-id="0">Swis Madagascar - Analyse</h1>
                 <div class="header-actions">
-                    <button type="button" id="show-data-button" class="header-button" disabled>
+                    <button type="button" id="show-data-button" class="header-button" onclick="showDataPreview()">
                         <span>👁️ Aperçu</span>
                         <div class="preview-badge" id="preview-badge" style="display: none;">0 fichier(s)</div>
                     </button>
@@ -1043,14 +1426,16 @@
             <div class="settings-modal" id="settings-modal">
                 <div class="settings-header">
                     <h3>⚙️ Paramètres d'affichage</h3>
+                    <button class="close-button" onclick="hideSettingsModal()">×</button>
                 </div>
                 <div class="settings-content">
                     <div class="theme-option">
                         <label>Thème de couleur :</label>
                         <select id="theme-selector" onchange="selectTheme(this.value)">
                             <option value="swis-blue">Bleu SWIS</option>
+                            <option value="white">Blanc</option>
+                            <option value="black">Noir</option>
                             <option value="professional">Professionnel</option>
-                            <option value="dark">Sombre</option>
                             <option value="green">Vert</option>
                             <option value="purple">Violet</option>
                         </select>
@@ -1060,13 +1445,17 @@
                             <div class="preview-color" style="background: linear-gradient(135deg, #1e40af, #1e3a8a)"></div>
                             <span>SWIS Bleu</span>
                         </div>
+                        <div class="preview-item" data-theme="white" onclick="selectTheme('white')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #ffffff, #f8fafc)"></div>
+                            <span>Blanc</span>
+                        </div>
+                        <div class="preview-item" data-theme="black" onclick="selectTheme('black')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #000000, #111827)"></div>
+                            <span>Noir</span>
+                        </div>
                         <div class="preview-item" data-theme="professional" onclick="selectTheme('professional')">
                             <div class="preview-color" style="background: linear-gradient(135deg, #059669, #047857)"></div>
                             <span>Professionnel</span>
-                        </div>
-                        <div class="preview-item" data-theme="dark" onclick="selectTheme('dark')">
-                            <div class="preview-color" style="background: linear-gradient(135deg, #374151, #1f2937)"></div>
-                            <span>Sombre</span>
                         </div>
                     </div>
                 </div>
@@ -1076,9 +1465,66 @@
             <div class="notifications-modal" id="notifications-modal">
                 <div class="notifications-header">
                     <h3>🚨 Notifications d'Anomalies</h3>
+                    <button class="close-button" onclick="hideNotificationsModal()">×</button>
                 </div>
                 <div class="notifications-list" id="notifications-list">
                     <!-- Notifications chargées dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Modal d'aperçu des données -->
+            <div class="preview-modal" id="preview-modal">
+                <div class="preview-header">
+                    <h3>📊 Aperçu des Données</h3>
+                    <button class="close-button" onclick="hidePreviewModal()">×</button>
+                </div>
+                <div class="preview-content" id="preview-content">
+                    <!-- Contenu des fichiers chargé dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Modal de partage simplifié -->
+            <div class="share-modal" id="share-modal">
+                <div class="share-header">
+                    <h3>📤 Partager l'analyse</h3>
+                    <button class="close-button" onclick="hideShareModal()">×</button>
+                </div>
+                <div class="share-content">
+                    <div class="share-options">
+                        <div class="share-option" onclick="selectShareOption('clipboard')">
+                            <div class="share-icon">📋</div>
+                            <div class="share-label">Copier</div>
+                        </div>
+                        <div class="share-option" onclick="selectShareOption('email')">
+                            <div class="share-icon">📧</div>
+                            <div class="share-label">Email</div>
+                        </div>
+                    </div>
+
+                    <div class="share-preview">
+                        <div class="share-preview-content" id="share-preview">
+                            Chargement du contenu...
+                        </div>
+                    </div>
+
+                    <div class="copy-success" id="copy-success">
+                        ✅ Contenu copié dans le presse-papier !
+                    </div>
+
+                    <div class="email-form" id="email-form">
+                        <input type="email" class="share-input" id="email-input" placeholder="Entrez l'adresse email" required>
+                        <input type="text" class="share-input" id="email-subject" placeholder="Sujet de l'email" value="Analyse SWIS Madagascar">
+                        <textarea class="share-input" id="email-message" placeholder="Message (optionnel)" rows="3"></textarea>
+                    </div>
+
+                    <div class="share-actions">
+                        <button class="confirm-btn cancel-btn" onclick="hideShareModal()">
+                            Annuler
+                        </button>
+                        <button class="confirm-btn primary" id="share-action-button" onclick="executeShare()">
+                            Copier
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1151,6 +1597,8 @@
         const previewBadge = document.getElementById('preview-badge');
         const settingsModal = document.getElementById('settings-modal');
         const themeSelector = document.getElementById('theme-selector');
+        const previewModal = document.getElementById('preview-modal');
+        const previewContent = document.getElementById('preview-content');
         
         // Boutons d'action
         const showDataButton = document.getElementById('show-data-button');
@@ -1164,6 +1612,12 @@
         let hasAnalysisResults = false;
         let currentAnomalies = [];
         let notifications = [];
+        let currentFiles = [];
+
+        // Variables pour le partage
+        let currentShareOption = 'clipboard';
+        let currentShareThreadId = null;
+        let currentShareContent = '';
 
         // --- FONCTIONS UTILITAIRES ---
 
@@ -1214,11 +1668,14 @@
             showUploadArea();
             hideNotificationsModal();
             hideSettingsModal();
+            hidePreviewModal();
+            hideShareModal();
             document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
             hideMobileMenu();
             hasAnalysisResults = false;
             currentAnomalies = [];
             notifications = [];
+            currentFiles = [];
             updateNotificationBadge();
         }
 
@@ -1277,6 +1734,53 @@
             }
         }
 
+        function showPreviewModal() {
+            previewModal.style.display = 'block';
+        }
+
+        function hidePreviewModal() {
+            previewModal.style.display = 'none';
+        }
+
+        // Fonctions pour le modal de partage
+        function showShareModal(threadId) {
+            currentShareThreadId = threadId;
+            loadShareContent(threadId);
+            document.getElementById('share-modal').style.display = 'block';
+            selectShareOption('clipboard'); // Option par défaut
+        }
+
+        function hideShareModal() {
+            document.getElementById('share-modal').style.display = 'none';
+            document.getElementById('copy-success').classList.remove('show');
+        }
+
+        function selectShareOption(option) {
+            currentShareOption = option;
+            
+            // Mettre à jour l'apparence des options
+            document.querySelectorAll('.share-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.target.closest('.share-option').classList.add('selected');
+            
+            // Mettre à jour le formulaire email
+            const emailForm = document.getElementById('email-form');
+            if (option === 'email') {
+                emailForm.classList.add('active');
+            } else {
+                emailForm.classList.remove('active');
+            }
+            
+            // Mettre à jour le bouton d'action
+            const actionButton = document.getElementById('share-action-button');
+            const actions = {
+                'clipboard': '📋 Copier',
+                'email': '📧 Envoyer par Email'
+            };
+            actionButton.textContent = actions[option] || 'Partager';
+        }
+
         // Fermer les modales en cliquant à l'extérieur
         document.addEventListener('click', function(event) {
             if (!notificationsModal.contains(event.target) && !notificationsButton.contains(event.target)) {
@@ -1284,6 +1788,12 @@
             }
             if (!settingsModal.contains(event.target) && !document.getElementById('theme-toggle').contains(event.target)) {
                 hideSettingsModal();
+            }
+            if (!previewModal.contains(event.target) && !showDataButton.contains(event.target)) {
+                hidePreviewModal();
+            }
+            if (!document.getElementById('share-modal').contains(event.target) && !event.target.closest('.history-item-action.share')) {
+                hideShareModal();
             }
         });
 
@@ -1399,7 +1909,7 @@
         }
 
         function selectTheme(themeName) {
-            document.body.classList.remove('theme-professional', 'theme-dark', 'theme-green', 'theme-purple');
+            document.body.classList.remove('theme-white', 'theme-black', 'theme-professional', 'theme-dark', 'theme-green', 'theme-purple');
             
             if (themeName !== 'swis-blue') {
                 document.body.classList.add(`theme-${themeName}`);
@@ -1437,8 +1947,9 @@
 
         function handleFiles(files) {
             if (files.length > 0) {
-                const fileNames = Array.from(files).map(f => f.name).join(', ');
-                const totalSize = Array.from(files).reduce((acc, f) => acc + f.size, 0);
+                currentFiles = Array.from(files);
+                const fileNames = currentFiles.map(f => f.name).join(', ');
+                const totalSize = currentFiles.reduce((acc, f) => acc + f.size, 0);
                 
                 fileDisplay.textContent = `${files.length} fichier(s) - ${(totalSize / 1024 / 1024).toFixed(2)} MB`;
                 fileCounter.textContent = `${files.length} fichier(s)`;
@@ -1452,6 +1963,275 @@
             } else {
                 resetFileInputs();
             }
+        }
+
+        // --- APERÇU DES DONNÉES ---
+
+        async function showDataPreview() {
+            if (currentThreadId === '0' && currentFiles.length === 0) {
+                showToast('Aucun fichier à afficher', 'error');
+                return;
+            }
+
+            try {
+                let filesData = [];
+                
+                if (currentThreadId === '0') {
+                    // Nouvelle analyse - utiliser les fichiers actuels
+                    filesData = await readCurrentFiles();
+                } else {
+                    // Analyse existante - récupérer depuis l'API
+                    const response = await fetch(`/api/thread/${currentThreadId}/files`);
+                    if (!response.ok) throw new Error('Impossible de charger les fichiers');
+                    const data = await response.json();
+                    filesData = data.files;
+                }
+
+                displayFilesPreview(filesData);
+                showPreviewModal();
+                
+            } catch (error) {
+                console.error('Erreur aperçu:', error);
+                showToast('Erreur lors du chargement des fichiers', 'error');
+            }
+        }
+
+        async function readCurrentFiles() {
+            const filesData = [];
+            
+            for (const file of currentFiles) {
+                try {
+                    const content = await readFileContent(file);
+                    filesData.push({
+                        filename: file.name,
+                        content: content,
+                        mime_type: file.type,
+                        size_kb: file.size / 1024
+                    });
+                } catch (error) {
+                    console.error(`Erreur lecture ${file.name}:`, error);
+                    filesData.push({
+                        filename: file.name,
+                        content: `Erreur lors de la lecture du fichier: ${error.message}`,
+                        mime_type: file.type,
+                        size_kb: file.size / 1024
+                    });
+                }
+            }
+            
+            return filesData;
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        resolve(`Fichier Excel: ${file.name}\n(Contenu non affiché en aperçu)`);
+                    } else if (file.type === 'application/pdf') {
+                        resolve(`Fichier PDF: ${file.name}\n(Contenu non affiché en aperçu)`);
+                    } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                        // Pour CSV, on peut essayer d'afficher le contenu
+                        const text = e.target.result;
+                        resolve(text.substring(0, 5000) + (text.length > 5000 ? '...' : ''));
+                    } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+                        const text = e.target.result;
+                        resolve(text.substring(0, 5000) + (text.length > 5000 ? '...' : ''));
+                    } else {
+                        resolve(`Fichier: ${file.name}\nType: ${file.type}\n(Taille: ${(file.size/1024).toFixed(2)} KB)`);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('Erreur de lecture du fichier'));
+                };
+                
+                if (file.type.includes('sheet') || file.type === 'application/pdf') {
+                    resolve(`Fichier: ${file.name}\nType: ${file.type}\n(Taille: ${(file.size/1024).toFixed(2)} KB)`);
+                } else {
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        function displayFilesPreview(filesData) {
+            if (filesData.length === 0) {
+                previewContent.innerHTML = `
+                    <div class="no-preview">
+                        <h3>📁 Aucun fichier à afficher</h3>
+                        <p>Les fichiers n'ont pas encore été chargés ou analysés.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            previewContent.innerHTML = '';
+            
+            filesData.forEach(fileData => {
+                const filePreview = document.createElement('div');
+                filePreview.className = 'file-preview';
+                
+                filePreview.innerHTML = `
+                    <div class="file-preview-header">
+                        📄 ${fileData.filename} (${fileData.size_kb.toFixed(2)} KB)
+                    </div>
+                    <div class="file-preview-content">
+                        ${fileData.content || 'Aucun contenu disponible'}
+                    </div>
+                `;
+                
+                previewContent.appendChild(filePreview);
+            });
+        }
+
+        // --- FONCTIONNALITÉS DE PARTAGE AMÉLIORÉES ---
+
+        async function loadShareContent(threadId) {
+            try {
+                const response = await fetch(`/api/thread/${threadId}`);
+                if (!response.ok) throw new Error('Impossible de charger l\'analyse');
+                
+                const threadData = await response.json();
+                currentShareContent = generateCompleteShareContent(threadData);
+                
+                document.getElementById('share-preview').textContent = currentShareContent;
+                
+            } catch (error) {
+                console.error('Erreur chargement partage:', error);
+                document.getElementById('share-preview').textContent = 'Erreur lors du chargement du contenu.';
+            }
+        }
+
+        function generateCompleteShareContent(threadData) {
+            const title = threadData.title;
+            const date = new Date(threadData.messages[0]?.date_message || new Date()).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const time = new Date(threadData.messages[0]?.date_message || new Date()).toLocaleTimeString('fr-FR');
+            
+            let content = `🔍 SWIS MADAGASCAR - RAPPORT COMPLET D'ANALYSE\n`;
+            content += `═`.repeat(50) + `\n\n`;
+            content += `📋 TITRE: ${title}\n`;
+            content += `📅 DATE: ${date}\n`;
+            content += `🕒 HEURE: ${time}\n`;
+            content += `🔢 NOMBRE DE MESSAGES: ${threadData.messages.length}\n\n`;
+            
+            content += `📊 RÉSUMÉ DE L'ANALYSE\n`;
+            content += `─`.repeat(30) + `\n\n`;
+            
+            // Ajouter TOUS les messages de l'historique
+            threadData.messages.forEach((msg, index) => {
+                content += `${msg.sender === 'user' ? '👤 UTILISATEUR' : '🤖 ASSISTANT SWIS'}\n`;
+                content += `Message ${index + 1}/${threadData.messages.length}\n`;
+                content += `Date: ${new Date(msg.date_message).toLocaleString('fr-FR')}\n`;
+                content += `Statut: ${msg.status || 'Succès'}\n`;
+                
+                if (msg.files && msg.files.length > 0) {
+                    content += `Fichiers: ${msg.files.join(', ')}\n`;
+                }
+                
+                content += `\n${msg.content}\n`;
+                content += `─`.repeat(50) + `\n\n`;
+            });
+            
+            // Statistiques de l'analyse
+            const totalUserMessages = threadData.messages.filter(msg => msg.sender === 'user').length;
+            const totalAssistantMessages = threadData.messages.filter(msg => msg.sender === 'assistant').length;
+            
+            content += `📈 STATISTIQUES DE L'ANALYSE\n`;
+            content += `─`.repeat(30) + `\n`;
+            content += `• Messages utilisateur: ${totalUserMessages}\n`;
+            content += `• Messages assistant: ${totalAssistantMessages}\n`;
+            content += `• Total des échanges: ${threadData.messages.length}\n`;
+            content += `• Durée estimée: ${calculateAnalysisDuration(threadData.messages)} minutes\n\n`;
+            
+            content += `═`.repeat(50) + `\n`;
+            content += `📊 Généré par SWIS Madagascar - Système d'Analyse Intelligente\n`;
+            content += `🌐 www.swis-madagascar.com\n`;
+            content += `📞 Support: +261 XX XXX XXX\n`;
+            content += `🕒 ${new Date().toLocaleString('fr-FR')}\n`;
+            
+            return content;
+        }
+
+        function calculateAnalysisDuration(messages) {
+            if (messages.length < 2) return 0;
+            
+            const firstMessage = new Date(messages[0].date_message);
+            const lastMessage = new Date(messages[messages.length - 1].date_message);
+            const durationMs = lastMessage - firstMessage;
+            return Math.round(durationMs / (1000 * 60)); // Convertir en minutes
+        }
+
+        async function executeShare() {
+            try {
+                switch (currentShareOption) {
+                    case 'clipboard':
+                        await copyToClipboard();
+                        break;
+                    case 'email':
+                        await shareByEmail();
+                        break;
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentShareContent);
+                document.getElementById('copy-success').classList.add('show');
+                showToast('Contenu copié dans le presse-papier avec succès!', 'success');
+                setTimeout(() => {
+                    document.getElementById('copy-success').classList.remove('show');
+                }, 3000);
+            } catch (error) {
+                // Fallback pour les navigateurs plus anciens
+                const textArea = document.createElement('textarea');
+                textArea.value = currentShareContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                document.getElementById('copy-success').classList.add('show');
+                showToast('Contenu copié dans le presse-papier avec succès!', 'success');
+                setTimeout(() => {
+                    document.getElementById('copy-success').classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        async function shareByEmail() {
+            const email = document.getElementById('email-input').value;
+            const subject = document.getElementById('email-subject').value;
+            const message = document.getElementById('email-message').value;
+            
+            if (!email) {
+                showToast('Veuillez entrer une adresse email', 'error');
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showToast('Veuillez entrer une adresse email valide', 'error');
+                return;
+            }
+            
+            const emailContent = `${message}\n\n--- RAPPORT D'ANALYSE COMPLET ---\n\n${currentShareContent}`;
+            const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailContent)}`;
+            
+            window.location.href = mailtoLink;
+            showToast('Client email ouvert avec le rapport complet', 'success');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
         }
 
         // --- GESTION DE L'HISTORIQUE ---
@@ -1534,30 +2314,137 @@
                         <span class="status-badge ${statusClass}">${item.last_status}</span>
                     </div>
                 </div>
-                <button class="history-item-delete" onclick="event.stopPropagation(); deleteThread(${item.id})" title="Supprimer">
-                    ×
-                </button>
+                <div class="history-item-actions">
+                    <button class="history-item-action share" onclick="shareThread(${item.id}, event)" title="Partager cette analyse">
+                        📤
+                    </button>
+                    <button class="history-item-action delete" onclick="deleteThread(${item.id}, event)" title="Supprimer cette analyse">
+                        🗑️
+                    </button>
+                </div>
             `;
             
             itemDiv.addEventListener('click', () => showThreadDetail(item.id, item.title));
             return itemDiv;
         }
 
-        async function deleteThread(id) {
-            if (!confirm(`Supprimer l'analyse #${id} ? Cette action est irréversible.`)) return;
+        // --- FONCTION AMÉLIORÉE POUR SUPPRIMER UN THREAD ---
+        async function deleteThread(id, event = null) {
+            if (event) event.stopPropagation();
+            
+            // Modal de confirmation amélioré
+            const confirmation = await showDeleteConfirmationModal(id);
+            if (!confirmation) return;
             
             try {
-                const response = await fetch(`/api/thread/${id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('Échec de la suppression');
+                // Afficher un indicateur de chargement
+                const deleteButton = event ? event.target.closest('.history-item-action') : null;
+                if (deleteButton) {
+                    deleteButton.innerHTML = '<div class="delete-loading"></div>';
+                    deleteButton.disabled = true;
+                }
                 
+                const response = await fetch(`/api/thread/${id}`, { 
+                    method: 'DELETE' 
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Échec de la suppression');
+                }
+                
+                // Afficher un message de succès
+                showToast('Analyse supprimée avec succès', 'success');
+                
+                // Recharger l'historique
                 if (currentThreadId === id.toString()) {
                     showNewDiscussionView();
                 }
                 
                 await loadHistory();
+                
             } catch (error) {
-                alert(`Erreur: ${error.message}`);
+                console.error('Erreur suppression:', error);
+                showToast(`Erreur: ${error.message}`, 'error');
+                
+                // Restaurer le bouton
+                const deleteButton = event ? event.target.closest('.history-item-action') : null;
+                if (deleteButton) {
+                    deleteButton.innerHTML = '🗑️';
+                    deleteButton.disabled = false;
+                }
             }
+        }
+
+        // Mettre à jour la fonction shareThread existante
+        async function shareThread(id, event = null) {
+            if (event) event.stopPropagation();
+            showShareModal(id);
+        }
+
+        // Modal de confirmation amélioré
+        function showDeleteConfirmationModal(threadId) {
+            return new Promise((resolve) => {
+                // Créer le modal de confirmation
+                const modal = document.createElement('div');
+                modal.className = 'confirmation-modal-overlay';
+                modal.innerHTML = `
+                    <div class="confirmation-modal">
+                        <div class="confirmation-header">
+                            <div class="confirmation-icon">🗑️</div>
+                            <h3>Confirmer la suppression</h3>
+                        </div>
+                        <div class="confirmation-body">
+                            <p>Êtes-vous sûr de vouloir supprimer l'analyse <strong>#${threadId}</strong> ?</p>
+                            <p class="warning-text">Cette action est irréversible et supprimera tous les messages associés.</p>
+                        </div>
+                        <div class="confirmation-actions">
+                            <button class="confirm-btn cancel-btn" onclick="closeConfirmationModal(false)">
+                                Annuler
+                            </button>
+                            <button class="confirm-btn delete-btn" onclick="closeConfirmationModal(true)">
+                                Supprimer définitivement
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Stocker la résolution de la promesse
+                window.closeConfirmationModal = (result) => {
+                    document.body.removeChild(modal);
+                    resolve(result);
+                    delete window.closeConfirmationModal;
+                };
+            });
+        }
+
+        // Fonction pour afficher des notifications toast
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span class="toast-icon">${type === 'success' ? '✅' : '❌'}</span>
+                    <span class="toast-message">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Animation d'entrée
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Suppression automatique après 3 secondes
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         async function showThreadDetail(id, title) {
@@ -1595,6 +2482,8 @@
             hideMobileMenu();
             hideNotificationsModal();
             hideSettingsModal();
+            hidePreviewModal();
+            hideShareModal();
         }
 
         function displayThreadMessages(threadData) {
@@ -1754,13 +2643,6 @@
         }
 
         // Événements des boutons
-        showDataButton.addEventListener('click', async () => {
-            const files = fileInput.files;
-            if (files.length > 0) {
-                alert('Fonctionnalité d\'aperçu en développement');
-            }
-        });
-
         showResultsButton.addEventListener('click', () => {
             showResultsOnly = !showResultsOnly;
             if (showResultsOnly) {
