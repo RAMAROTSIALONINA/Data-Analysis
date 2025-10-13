@@ -1,4 +1,7 @@
 import os
+os.environ["PYTHONASYNCIODEBUG"] = "0"  # Désactive debug asyncio
+os.environ["UVICORN_LOOP"] = "asyncio"  
+
 import sqlite3
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
@@ -6,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from google.genai import Client
 from google.genai.errors import APIError
+import sys   # <- ilaina tokoa
 from typing import Annotated, Optional
 import shutil
 import tempfile
@@ -18,6 +22,29 @@ import re
 import time
 import pandas as pd
 import io
+import logging
+
+# ⚡ Production-safe logging
+logging.basicConfig(
+    level=logging.WARNING,  # WARNING sy ERROR ihany no haseho
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+def resource_path(relative_path):
+    """Retourne le chemin correct même dans un .exe"""
+    if hasattr(sys, "_MEIPASS"):
+        # chemin temporaire PyInstaller
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
+# Mount static folder correctement
+static_dir = resource_path("static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 
 # ---------------------
 # Configuration du logging

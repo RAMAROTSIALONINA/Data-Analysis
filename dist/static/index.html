@@ -1,0 +1,2664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swis Madagascar - Analyse Intelligente</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #059669;
+            --danger-color: #dc2626;
+            --warning-color: #d97706;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+            --border-color: #e5e7eb;
+            --swis-blue: #1e40af;
+            --swis-dark: #1e3a8a;
+            --sidebar-bg: #1e3a8a;
+            --base-font-size: 1rem;
+            --sidebar-width: 350px;
+            --header-height: 70px;
+            --button-padding: 0.75rem 1rem;
+            --border-radius: 0.75rem;
+        }
+        
+        .theme-white {
+            --primary-color: #2563eb;
+            --sidebar-bg: #ffffff;
+            --swis-blue: #1e40af;
+            --swis-dark: #1e3a8a;
+            --light-color: #ffffff;
+            --border-color: #e5e7eb;
+        }
+
+        .theme-black {
+            --primary-color: #3b82f6;
+            --sidebar-bg: #000000;
+            --swis-blue: #3b82f6;
+            --swis-dark: #1f2937;
+            --light-color: #111827;
+            --border-color: #374151;
+            --dark-color: #000000;
+        }
+
+        .theme-professional {
+            --primary-color: #059669;
+            --sidebar-bg: #065f46;
+            --swis-blue: #047857;
+            --swis-dark: #065f46;
+        }
+
+        .theme-green {
+            --primary-color: #10b981;
+            --sidebar-bg: #047857;
+            --swis-blue: #059669;
+            --swis-dark: #047857;
+        }
+
+        .theme-purple {
+            --primary-color: #8b5cf6;
+            --sidebar-bg: #7c3aed;
+            --swis-blue: #7c3aed;
+            --swis-dark: #6d28d9;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: linear-gradient(135deg, var(--swis-blue) 0%, var(--swis-dark) 100%);
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow: hidden;
+            font-size: var(--base-font-size);
+            transition: all 0.3s ease;
+        }
+        
+        .main-wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            background-color: #fff; 
+            box-shadow: 0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.25); 
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Sidebar Historique */
+        #history-panel {
+            width: var(--sidebar-width); 
+            background: var(--sidebar-bg); 
+            color: var(--light-color);
+            border-right: 1px solid #374151;
+            padding: 0; 
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+        
+        .history-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #374151;
+            background: linear-gradient(135deg, var(--sidebar-bg), var(--swis-dark));
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .company-brand {
+            text-align: center;
+            padding: 0.9375rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 0.625rem;
+            margin-bottom: 0.9375rem;
+        }
+        
+        .company-brand h3 {
+            color: white;
+            font-size: 1.1em;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .company-brand p {
+            color: #d1d5db;
+            font-size: 0.8em;
+            margin: 0.3125rem 0 0 0;
+        }
+        
+        #new-thread-button {
+            width: 100%;
+            margin: 0;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--swis-blue));
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 0.25rem 0.75rem rgba(37, 99, 235, 0.3);
+        }
+        
+        #new-thread-button:hover {
+            transform: translateY(-0.125rem);
+            box-shadow: 0 0.5rem 1.25rem rgba(37, 99, 235, 0.4);
+        }
+        
+        #history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: 1rem;
+        }
+        
+        .history-date-header {
+            font-size: 0.8em; 
+            padding: 1rem 1.25rem 0.5rem 1.25rem; 
+            margin: 0; 
+            background: #374151; 
+            color: #9ca3af;
+            font-weight: 600;
+            border-top: 1px solid #4b5563;
+            position: sticky; 
+            top: 0;
+            z-index: 5;
+            text-transform: uppercase;
+            letter-spacing: 0.03125rem;
+        }
+        
+        .history-item {
+            padding: 1rem 1.25rem; 
+            cursor: pointer; 
+            border-bottom: 1px solid #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            background: #374151; 
+        }
+        
+        .history-item:hover .history-item-actions {
+            opacity: 1;
+        }
+        
+        .history-item.active {
+            background: var(--swis-blue);
+        }
+        
+        .history-item-content {
+            flex-grow: 1;
+            padding-right: 0.5rem;
+            min-width: 0;
+        }
+        
+        .history-item-title {
+            display: block;
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+            line-height: 1.4;
+            color: #e5e7eb;
+        }
+        
+        .history-item-meta {
+            font-size: 0.75em;
+            color: #9ca3af;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        /* Actions des historiques */
+        .history-item-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .history-item-action {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .history-item-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+        
+        .history-item-action.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .history-item-action.share:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .history-item-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Animation de chargement pour la suppression */
+        .delete-loading {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid #ef4444;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Conteneur Principal */
+        .chat-container { 
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            background: var(--light-color);
+            position: relative;
+            min-width: 0;
+        }
+        
+        .mobile-menu-button {
+            display: none;
+            position: absolute;
+            top: 1.25rem;
+            left: 1.25rem;
+            z-index: 100;
+            background: var(--swis-blue);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.625rem;
+            cursor: pointer;
+            font-size: 1.2em;
+            width: 2.5rem;
+            height: 2.5rem;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            min-height: var(--header-height);
+        }
+        
+        .chat-header h1 {
+            color: var(--swis-dark);
+            margin: 0;
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            font-weight: 700;
+            flex-grow: 1;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .header-button {
+            padding: var(--button-padding);
+            background: var(--light-color);
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            text-decoration: none;
+            min-height: 2.5rem;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .header-button:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-0.0625rem);
+        }
+        
+        .header-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .header-button.primary {
+            background: linear-gradient(135deg, var(--swis-blue), var(--swis-dark));
+            color: white;
+            border: none;
+        }
+        
+        .header-button.primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--swis-dark), var(--swis-blue));
+            transform: translateY(-0.0625rem);
+        }
+        
+        .header-button.success {
+            background: linear-gradient(135deg, var(--success-color), #047857);
+            color: white;
+            border: none;
+        }
+        
+        .preview-badge {
+            background: #3b82f6;
+            color: white;
+            border-radius: 0.75rem;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 0.3rem;
+        }
+        
+        .notification-indicator {
+            position: relative;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            font-size: 0.7em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+            border: 2px solid white;
+        }
+        
+        .critical-badge {
+            background: #dc2626;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Modals */
+        .notifications-modal, .settings-modal, .preview-modal, .share-modal {
+            display: none;
+            position: fixed;
+            top: var(--header-height);
+            right: 1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 18.75rem;
+            max-width: 90vw;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        .settings-modal, .preview-modal, .share-modal {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            width: auto;
+        }
+        
+        .preview-modal {
+            min-width: 600px;
+            max-width: 95vw;
+            max-height: 85vh;
+        }
+
+        .share-modal {
+            min-width: 500px;
+            max-width: 95vw;
+            max-height: 80vh;
+        }
+        
+        /* Modal de confirmation */
+        .confirmation-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .confirmation-modal {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 0;
+            max-width: 90vw;
+            width: 400px;
+            box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+        
+        .confirmation-header {
+            padding: 1.5rem 1.5rem 1rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .confirmation-icon {
+            font-size: 3em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirmation-header h3 {
+            margin: 0;
+            color: var(--swis-dark);
+            font-size: 1.3em;
+        }
+        
+        .confirmation-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .confirmation-body p {
+            margin: 0 0 1rem 0;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        
+        .warning-text {
+            color: #ef4444 !important;
+            font-weight: 600;
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .confirmation-actions {
+            padding: 1rem 1.5rem 1.5rem 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        
+        .confirm-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        .cancel-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .cancel-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+        
+        /* Notifications Toast */
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            box-shadow: 0 0.625rem 1.5625rem -0.1875rem rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3b82f6;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10001;
+            max-width: 350px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .toast-success {
+            border-left-color: #10b981;
+        }
+        
+        .toast-error {
+            border-left-color: #ef4444;
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .toast-icon {
+            font-size: 1.2em;
+        }
+        
+        .toast-message {
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        /* Animation pour le modal */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-1rem);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .notifications-header, .settings-header, .preview-header, .share-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #f8fafc;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notifications-header h3, .settings-header h3, .preview-header h3, .share-header h3 {
+            margin: 0;
+            color: var(--swis-dark);
+            font-size: 1.1em;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+        
+        .close-button:hover {
+            background: #f3f4f6;
+        }
+        
+        .notifications-list, .settings-content, .preview-content, .share-content {
+            padding: 1rem;
+        }
+        
+        .notification-item {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: #fef2f2;
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .notification-file {
+            font-weight: 600;
+            color: var(--danger-color);
+            margin-bottom: 0.25rem;
+        }
+        
+        .notification-message {
+            color: #6b7280;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+        
+        .no-notifications {
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .theme-option {
+            margin-bottom: 1.5rem;
+        }
+        
+        .theme-option label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .theme-option select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background: white;
+        }
+        
+        .theme-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        
+        .preview-item {
+            text-align: center;
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .preview-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .preview-item.selected {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        
+        .preview-color {
+            width: 100%;
+            height: 2rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Options de partage simplifiées */
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .share-option:hover {
+            border-color: var(--swis-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .share-option.selected {
+            border-color: var(--swis-blue);
+            background: #f0f9ff;
+        }
+
+        .share-icon {
+            font-size: 2em;
+            margin-bottom: 0.5rem;
+        }
+
+        .share-label {
+            font-weight: 600;
+            color: var(--swis-dark);
+            text-align: center;
+        }
+
+        .share-preview {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .share-preview-content {
+            font-size: 0.9em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+
+        .share-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .share-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+
+        .share-input:focus {
+            outline: none;
+            border-color: var(--swis-blue);
+        }
+
+        .email-form {
+            display: none;
+        }
+
+        .email-form.active {
+            display: block;
+        }
+
+        .copy-success {
+            color: var(--success-color);
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .copy-success.show {
+            display: block;
+        }
+        
+        /* Aperçu des données */
+        .preview-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .file-preview {
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .file-preview-header {
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--swis-dark);
+        }
+        
+        .file-preview-content {
+            padding: 1rem;
+            background: white;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .no-preview {
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        /* Zone de dépôt */
+        .compact-upload-area {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            transition: all 0.3s ease;
+        }
+        
+        .compact-upload-area.hidden {
+            display: none;
+        }
+        
+        .upload-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-grow: 1;
+            flex-wrap: wrap;
+        }
+        
+        .file-input-compact {
+            display: none;
+        }
+        
+        .upload-button {
+            padding: 0.625rem 1.25rem;
+            background: linear-gradient(135deg, var(--swis-blue), var(--swis-dark));
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: clamp(0.9rem, 1.5vw, 0.95rem);
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 2.5rem;
+        }
+        
+        .upload-button:hover {
+            transform: translateY(-0.0625rem);
+            box-shadow: 0 0.25rem 0.75rem rgba(30, 64, 175, 0.3);
+        }
+        
+        .file-display {
+            font-size: clamp(0.85rem, 1.5vw, 0.9rem);
+            color: #6b7280;
+            padding: 0.5rem 0.75rem;
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            flex-grow: 1;
+            min-width: 12.5rem;
+        }
+        
+        .file-counter {
+            font-size: clamp(0.8rem, 1.5vw, 0.85rem);
+            color: #6b7280;
+            font-weight: 600;
+            background: #e5e7eb;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+        
+        /* Fenêtre de chat */
+        #chat-window { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 1rem;
+            background: var(--light-color);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-window-full {
+            padding-bottom: 0;
+        }
+        
+        /* Messages */
+        .message { 
+            margin-bottom: 1rem; 
+            padding: 1rem; 
+            border-radius: var(--border-radius); 
+            line-height: 1.6;
+            max-width: 90%;
+            position: relative;
+            animation: fadeIn 0.4s ease;
+            font-size: 1em;
+            word-wrap: break-word;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(1.25rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message { 
+            background: linear-gradient(135deg, var(--swis-blue), var(--swis-dark));
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+            box-shadow: 0 0.25rem 0.75rem rgba(30, 64, 175, 0.3);
+        }
+        
+        .assistant-message { 
+            background: white;
+            color: #111827;
+            margin-right: auto;
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.08);
+        }
+        
+        .system-message { 
+            background: var(--warning-color);
+            color: #78350f;
+            text-align: center;
+            margin: 0.75rem auto;
+            max-width: 80%;
+            border: 1px solid #fbbf24;
+            font-size: 0.9em;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            color: #7f1d1d;
+            text-align: left;
+            max-width: 95%;
+        }
+        
+        .initial-message {
+            max-width: 95%;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px dashed #bae6fd;
+            text-align: center;
+            margin: 1.25rem auto;
+            padding: 1.875rem;
+        }
+        
+        .welcome-title {
+            color: var(--swis-dark);
+            font-size: clamp(1.5rem, 3vw, 1.8rem);
+            margin-bottom: 0.9375rem;
+            font-weight: 700;
+        }
+        
+        .welcome-subtitle {
+            color: #4b5563;
+            font-size: clamp(1rem, 2vw, 1.1rem);
+            margin-bottom: 1.25rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
+            gap: 0.9375rem;
+            margin: 1.25rem 0;
+        }
+        
+        .feature-item {
+            background: white;
+            padding: 0.9375rem;
+            border-radius: 0.625rem;
+            border-left: 4px solid var(--swis-blue);
+            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 1.5em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            color: var(--swis-dark);
+            margin-bottom: 0.3125rem;
+        }
+        
+        .feature-desc {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        
+        .message-files {
+            font-size: 0.8em;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .assistant-message .message-files {
+            border-top-color: var(--border-color);
+            color: #6b7280;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.625rem;
+            padding: 1.25rem;
+            color: var(--swis-blue);
+            font-weight: 600;
+        }
+        
+        .loading-dots {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+        
+        .loading-dots span {
+            width: 0.375rem;
+            height: 0.375rem;
+            border-radius: 50%;
+            background-color: var(--swis-blue);
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-width: 300px;
+                --base-font-size: 0.95rem;
+                --header-height: 60px;
+            }
+            
+            .main-wrapper {
+                flex-direction: column;
+                height: 100vh;
+            }
+            
+            #history-panel {
+                width: 100%;
+                height: 40vh;
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 90;
+                transform: translateY(-100%);
+            }
+            
+            #history-panel.mobile-open {
+                transform: translateY(0);
+            }
+            
+            .mobile-menu-button {
+                display: flex;
+            }
+            
+            .chat-container {
+                height: 100vh;
+            }
+            
+            .chat-header {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .chat-header h1 {
+                text-align: center;
+                margin-left: 0;
+                font-size: 1.2rem;
+            }
+            
+            .header-actions {
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .header-button {
+                flex: 1;
+                justify-content: center;
+                min-width: 7.5rem;
+                font-size: 0.85rem;
+                padding: 0.5rem 0.75rem;
+            }
+            
+            #chat-window {
+                padding: 0.75rem;
+            }
+            
+            .message {
+                max-width: 95%;
+                font-size: 0.95em;
+                padding: 0.875rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .compact-upload-area {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .upload-info {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .file-display {
+                min-width: auto;
+                text-align: center;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-badge {
+                display: none !important;
+            }
+            
+            .theme-preview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .settings-modal, .preview-modal, .share-modal {
+                width: 95vw;
+                margin: 2.5vw;
+                min-width: auto;
+            }
+
+            .share-options {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --base-font-size: 0.9rem;
+                --button-padding: 0.5rem 0.75rem;
+            }
+            
+            .chat-header h1 {
+                font-size: 1.1em;
+            }
+            
+            .header-button {
+                font-size: 0.8em;
+            }
+            
+            .message {
+                max-width: 98%;
+                font-size: 0.9em;
+                padding: 0.75rem;
+            }
+            
+            .upload-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.9em;
+            }
+            
+            .file-display {
+                font-size: 0.85em;
+            }
+            
+            .welcome-title {
+                font-size: 1.5em;
+            }
+            
+            .initial-message {
+                padding: 1.25rem;
+            }
+            
+            .notifications-modal {
+                right: 0.5rem;
+                left: 0.5rem;
+                max-width: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            :root {
+                --base-font-size: 0.85rem;
+            }
+            
+            .chat-header {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .chat-header h1 {
+                font-size: 1em;
+            }
+            
+            #chat-window {
+                padding: 0.5rem;
+            }
+            
+            .message {
+                padding: 0.625rem;
+                font-size: 0.85em;
+            }
+            
+            .compact-upload-area {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .file-display {
+                font-size: 0.8em;
+                padding: 0.375rem 0.625rem;
+            }
+            
+            .header-actions {
+                gap: 0.25rem;
+            }
+            
+            .header-button {
+                min-width: auto;
+                flex: 0 1 auto;
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+            }
+        }
+
+        /* Amélioration accessibilité */
+        @media (prefers-reduced-motion: reduce) {
+            .critical-badge, .notification-badge {
+                animation: none;
+            }
+        }
+
+        .message-content {
+            line-height: 1.6;
+        }
+        
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            margin: 0.8em 0 0.4em 0;
+            color: inherit;
+        }
+        
+        .message-content ul,
+        .message-content ol {
+            margin: 0.4em 0;
+            padding-left: 1.5em;
+        }
+        
+        .message-content li {
+            margin: 0.2em 0;
+        }
+        
+        .message-content code {
+            background: rgba(0,0,0,0.1);
+            padding: 0.1em 0.3em;
+            border-radius: 0.1875rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .assistant-message .message-content code {
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body onload="loadHistory(); initTheme();">
+    <div class="main-wrapper">
+        <div id="history-panel">
+            <div class="history-header">
+                <div class="company-brand">
+                    <h3>SWIS MADAGASCAR</h3>
+                    <p>Analyse Intelligente</p>
+                </div>
+                <button id="new-thread-button" onclick="showNewDiscussionView()">
+                    <span>+ Nouvelle Analyse</span>
+                </button>
+            </div>
+            <div id="history-list">
+                <!-- Historique chargé dynamiquement -->
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <button class="mobile-menu-button" id="mobile-menu-button" onclick="toggleMobileMenu()">☰</button>
+            
+            <!-- En-tête avec actions -->
+            <div class="chat-header">
+                <h1 id="chat-title" data-thread-id="0">Swis Madagascar - Analyse</h1>
+                <div class="header-actions">
+                    <button type="button" id="show-data-button" class="header-button" onclick="showDataPreview()">
+                        <span>👁️ Aperçu</span>
+                        <div class="preview-badge" id="preview-badge" style="display: none;">0 fichier(s)</div>
+                    </button>
+                    <button type="button" id="show-results-button" class="header-button success" disabled>
+                        <span>📊 Résultats</span>
+                    </button>
+                    <button type="button" id="theme-toggle" class="header-button" onclick="toggleSettingsModal()">
+                        <span>🎨 Thème</span>
+                    </button>
+                    <button type="button" id="notifications-button" class="header-button notification-indicator">
+                        <span>🔔</span>
+                        <div class="notification-badge" id="notification-badge" style="display: none;">0</div>
+                    </button>
+                    <button type="button" id="new-analysis-button" class="header-button primary">
+                        <span>🔄 Nouveau</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal des paramètres -->
+            <div class="settings-modal" id="settings-modal">
+                <div class="settings-header">
+                    <h3>⚙️ Paramètres d'affichage</h3>
+                    <button class="close-button" onclick="hideSettingsModal()">×</button>
+                </div>
+                <div class="settings-content">
+                    <div class="theme-option">
+                        <label>Thème de couleur :</label>
+                        <select id="theme-selector" onchange="selectTheme(this.value)">
+                            <option value="swis-blue">Bleu SWIS</option>
+                            <option value="white">Blanc</option>
+                            <option value="black">Noir</option>
+                            <option value="professional">Professionnel</option>
+                            <option value="green">Vert</option>
+                            <option value="purple">Violet</option>
+                        </select>
+                    </div>
+                    <div class="theme-preview">
+                        <div class="preview-item" data-theme="swis-blue" onclick="selectTheme('swis-blue')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #1e40af, #1e3a8a)"></div>
+                            <span>SWIS Bleu</span>
+                        </div>
+                        <div class="preview-item" data-theme="white" onclick="selectTheme('white')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #ffffff, #f8fafc)"></div>
+                            <span>Blanc</span>
+                        </div>
+                        <div class="preview-item" data-theme="black" onclick="selectTheme('black')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #000000, #111827)"></div>
+                            <span>Noir</span>
+                        </div>
+                        <div class="preview-item" data-theme="professional" onclick="selectTheme('professional')">
+                            <div class="preview-color" style="background: linear-gradient(135deg, #059669, #047857)"></div>
+                            <span>Professionnel</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal des notifications -->
+            <div class="notifications-modal" id="notifications-modal">
+                <div class="notifications-header">
+                    <h3>🚨 Notifications d'Anomalies</h3>
+                    <button class="close-button" onclick="hideNotificationsModal()">×</button>
+                </div>
+                <div class="notifications-list" id="notifications-list">
+                    <!-- Notifications chargées dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Modal d'aperçu des données -->
+            <div class="preview-modal" id="preview-modal">
+                <div class="preview-header">
+                    <h3>📊 Aperçu des Données</h3>
+                    <button class="close-button" onclick="hidePreviewModal()">×</button>
+                </div>
+                <div class="preview-content" id="preview-content">
+                    <!-- Contenu des fichiers chargé dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Modal de partage simplifié -->
+            <div class="share-modal" id="share-modal">
+                <div class="share-header">
+                    <h3>📤 Partager l'analyse</h3>
+                    <button class="close-button" onclick="hideShareModal()">×</button>
+                </div>
+                <div class="share-content">
+                    <div class="share-options">
+                        <div class="share-option" onclick="selectShareOption('clipboard')">
+                            <div class="share-icon">📋</div>
+                            <div class="share-label">Copier</div>
+                        </div>
+                        <div class="share-option" onclick="selectShareOption('email')">
+                            <div class="share-icon">📧</div>
+                            <div class="share-label">Email</div>
+                        </div>
+                    </div>
+
+                    <div class="share-preview">
+                        <div class="share-preview-content" id="share-preview">
+                            Chargement du contenu...
+                        </div>
+                    </div>
+
+                    <div class="copy-success" id="copy-success">
+                        ✅ Contenu copié dans le presse-papier !
+                    </div>
+
+                    <div class="email-form" id="email-form">
+                        <input type="email" class="share-input" id="email-input" placeholder="Entrez l'adresse email" required>
+                        <input type="text" class="share-input" id="email-subject" placeholder="Sujet de l'email" value="Analyse SWIS Madagascar">
+                        <textarea class="share-input" id="email-message" placeholder="Message (optionnel)" rows="3"></textarea>
+                    </div>
+
+                    <div class="share-actions">
+                        <button class="confirm-btn cancel-btn" onclick="hideShareModal()">
+                            Annuler
+                        </button>
+                        <button class="confirm-btn primary" id="share-action-button" onclick="executeShare()">
+                            Copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone de dépôt -->
+            <div class="compact-upload-area" id="compact-upload-area">
+                <div class="upload-info">
+                    <input type="file" id="file-input" class="file-input-compact" multiple accept=".xlsx,.xls,.csv,.pdf,.txt,.json,.xml">
+                    <button type="button" class="upload-button" onclick="document.getElementById('file-input').click()">
+                        <span>📎 Choisir fichiers</span>
+                    </button>
+                    <div class="file-display" id="file-display">Aucun fichier sélectionné</div>
+                    <div class="file-counter" id="file-counter">0 fichier(s)</div>
+                </div>
+            </div>
+            
+            <!-- Fenêtre de chat -->
+            <div id="chat-window">
+                <div class="message assistant-message initial-message">
+                    <div class="message-content">
+                        <div class="welcome-title">🔍 Swis Madagascar - Système d'Analyse Intelligente</div>
+                        <div class="welcome-subtitle">Déposez vos fichiers pour une analyse automatique et détaillée</div>
+                        
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">💰</div>
+                                <div class="feature-title">Analyse Financière</div>
+                                <div class="feature-desc">Détection des incohérences financières et écarts</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📊</div>
+                                <div class="feature-title">Contrôle de Stock</div>
+                                <div class="feature-desc">Comparaison stock théorique vs physique</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚠️</div>
+                                <div class="feature-title">Détection d'Anomalies</div>
+                                <div class="feature-desc">Identification précise des erreurs</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🚨</div>
+                                <div class="feature-title">Rapport Détaillé</div>
+                                <div class="feature-desc">Recommandations correctives par criticité</div>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 1.25rem; padding: 0.9375rem; background: #f0f9ff; border-radius: 0.625rem; border: 1px dashed #bae6fd;">
+                            <strong>📁 Sélectionnez vos fichiers pour démarrer l'analyse automatique</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Éléments DOM
+        const chatWindow = document.getElementById('chat-window');
+        const fileInput = document.getElementById('file-input');
+        const fileDisplay = document.getElementById('file-display');
+        const fileCounter = document.getElementById('file-counter');
+        const historyListDiv = document.getElementById('history-list');
+        const chatTitle = document.getElementById('chat-title');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const historyPanel = document.getElementById('history-panel');
+        const compactUploadArea = document.getElementById('compact-upload-area');
+        const notificationBadge = document.getElementById('notification-badge');
+        const notificationsButton = document.getElementById('notifications-button');
+        const notificationsModal = document.getElementById('notifications-modal');
+        const notificationsList = document.getElementById('notifications-list');
+        const previewBadge = document.getElementById('preview-badge');
+        const settingsModal = document.getElementById('settings-modal');
+        const themeSelector = document.getElementById('theme-selector');
+        const previewModal = document.getElementById('preview-modal');
+        const previewContent = document.getElementById('preview-content');
+        
+        // Boutons d'action
+        const showDataButton = document.getElementById('show-data-button');
+        const showResultsButton = document.getElementById('show-results-button');
+        const newAnalysisButton = document.getElementById('new-analysis-button');
+        
+        // Variables d'état
+        let currentThreadId = '0';
+        let isProcessing = false;
+        let showResultsOnly = false;
+        let hasAnalysisResults = false;
+        let currentAnomalies = [];
+        let notifications = [];
+        let currentFiles = [];
+
+        // Variables pour le partage
+        let currentShareOption = 'clipboard';
+        let currentShareThreadId = null;
+        let currentShareContent = '';
+
+        // --- FONCTIONS UTILITAIRES ---
+
+        function scrollToBottom() {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function showNewDiscussionView() {
+            currentThreadId = '0';
+            chatTitle.textContent = "Swis Madagascar - Analyse";
+            chatTitle.setAttribute('data-thread-id', '0');
+            chatWindow.innerHTML = `
+                <div class="message assistant-message initial-message">
+                    <div class="message-content">
+                        <div class="welcome-title">🔍 Swis Madagascar - Système d'Analyse Intelligente</div>
+                        <div class="welcome-subtitle">Déposez vos fichiers pour une analyse automatique et détaillée</div>
+                        
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">💰</div>
+                                <div class="feature-title">Analyse Financière</div>
+                                <div class="feature-desc">Détection des incohérences financières et écarts</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📊</div>
+                                <div class="feature-title">Contrôle de Stock</div>
+                                <div class="feature-desc">Comparaison stock théorique vs physique</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚠️</div>
+                                <div class="feature-title">Détection d'Anomalies</div>
+                                <div class="feature-desc">Identification précise des erreurs</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🚨</div>
+                                <div class="feature-title">Rapport Détaillé</div>
+                                <div class="feature-desc">Recommandations correctives par criticité</div>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 1.25rem; padding: 0.9375rem; background: #f0f9ff; border-radius: 0.625rem; border: 1px dashed #bae6fd;">
+                            <strong>📁 Sélectionnez vos fichiers pour démarrer l'analyse automatique</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resetFileInputs();
+            showUploadArea();
+            hideNotificationsModal();
+            hideSettingsModal();
+            hidePreviewModal();
+            hideShareModal();
+            document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
+            hideMobileMenu();
+            hasAnalysisResults = false;
+            currentAnomalies = [];
+            notifications = [];
+            currentFiles = [];
+            updateNotificationBadge();
+        }
+
+        function resetFileInputs() {
+            fileInput.value = '';
+            fileDisplay.textContent = 'Aucun fichier sélectionné';
+            fileCounter.textContent = '0 fichier(s)';
+            showDataButton.disabled = true;
+            showResultsButton.disabled = true;
+            showResultsOnly = false;
+            chatWindow.classList.remove('results-only');
+            showResultsButton.innerHTML = '<span>📊 Résultats</span>';
+            updatePreviewBadge(0);
+        }
+
+        function hideUploadArea() {
+            compactUploadArea.classList.add('hidden');
+            chatWindow.classList.add('chat-window-full');
+        }
+
+        function showUploadArea() {
+            compactUploadArea.classList.remove('hidden');
+            chatWindow.classList.remove('chat-window-full');
+        }
+
+        function showNotificationsModal() {
+            notificationsModal.style.display = 'block';
+            generateNotificationsList();
+        }
+
+        function hideNotificationsModal() {
+            notificationsModal.style.display = 'none';
+        }
+
+        function toggleNotificationsModal() {
+            if (notificationsModal.style.display === 'block') {
+                hideNotificationsModal();
+            } else {
+                showNotificationsModal();
+            }
+        }
+
+        function showSettingsModal() {
+            settingsModal.style.display = 'block';
+        }
+
+        function hideSettingsModal() {
+            settingsModal.style.display = 'none';
+        }
+
+        function toggleSettingsModal() {
+            if (settingsModal.style.display === 'block') {
+                hideSettingsModal();
+            } else {
+                showSettingsModal();
+            }
+        }
+
+        function showPreviewModal() {
+            previewModal.style.display = 'block';
+        }
+
+        function hidePreviewModal() {
+            previewModal.style.display = 'none';
+        }
+
+        // Fonctions pour le modal de partage
+        function showShareModal(threadId) {
+            currentShareThreadId = threadId;
+            loadShareContent(threadId);
+            document.getElementById('share-modal').style.display = 'block';
+            selectShareOption('clipboard'); // Option par défaut
+        }
+
+        function hideShareModal() {
+            document.getElementById('share-modal').style.display = 'none';
+            document.getElementById('copy-success').classList.remove('show');
+        }
+
+        function selectShareOption(option) {
+            currentShareOption = option;
+            
+            // Mettre à jour l'apparence des options
+            document.querySelectorAll('.share-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.target.closest('.share-option').classList.add('selected');
+            
+            // Mettre à jour le formulaire email
+            const emailForm = document.getElementById('email-form');
+            if (option === 'email') {
+                emailForm.classList.add('active');
+            } else {
+                emailForm.classList.remove('active');
+            }
+            
+            // Mettre à jour le bouton d'action
+            const actionButton = document.getElementById('share-action-button');
+            const actions = {
+                'clipboard': '📋 Copier',
+                'email': '📧 Envoyer par Email'
+            };
+            actionButton.textContent = actions[option] || 'Partager';
+        }
+
+        // Fermer les modales en cliquant à l'extérieur
+        document.addEventListener('click', function(event) {
+            if (!notificationsModal.contains(event.target) && !notificationsButton.contains(event.target)) {
+                hideNotificationsModal();
+            }
+            if (!settingsModal.contains(event.target) && !document.getElementById('theme-toggle').contains(event.target)) {
+                hideSettingsModal();
+            }
+            if (!previewModal.contains(event.target) && !showDataButton.contains(event.target)) {
+                hidePreviewModal();
+            }
+            if (!document.getElementById('share-modal').contains(event.target) && !event.target.closest('.history-item-action.share')) {
+                hideShareModal();
+            }
+        });
+
+        function updatePreviewBadge(fileCount) {
+            previewBadge.textContent = `${fileCount} fichier(s)`;
+            previewBadge.style.display = fileCount > 0 ? 'inline-block' : 'none';
+        }
+
+        function appendMessage(text, className, fileInfo = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${className}`;
+            
+            if (fileInfo) {
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'message-files';
+                infoDiv.textContent = `Fichiers analysés: ${fileInfo}`;
+                messageDiv.appendChild(infoDiv);
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = formatMessageText(text);
+            messageDiv.appendChild(contentDiv);
+            
+            chatWindow.appendChild(messageDiv);
+            scrollToBottom();
+            
+            return messageDiv;
+        }
+
+        function formatMessageText(text) {
+            // Formatage basique du texte
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
+        }
+
+        function updateNotificationBadge(anomalyStats = null) {
+            if (anomalyStats && anomalyStats.total_anomalies > 0) {
+                notificationBadge.textContent = anomalyStats.total_anomalies;
+                notificationBadge.style.display = 'flex';
+                
+                if (anomalyStats.has_critical_issues) {
+                    notificationBadge.classList.add('critical-badge');
+                } else {
+                    notificationBadge.classList.remove('critical-badge');
+                }
+            } else if (notifications.length > 0) {
+                notificationBadge.textContent = notifications.length;
+                notificationBadge.style.display = 'flex';
+            } else {
+                notificationBadge.style.display = 'none';
+            }
+        }
+
+        function generateNotificationsList() {
+            if (notifications.length === 0) {
+                notificationsList.innerHTML = `
+                    <div class="no-notifications">
+                        <h3>✅ Aucune notification</h3>
+                        <p>Aucune anomalie détectée dans les fichiers analysés.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const notificationsByFile = {};
+            notifications.forEach(notif => {
+                if (!notificationsByFile[notif.file]) {
+                    notificationsByFile[notif.file] = [];
+                }
+                notificationsByFile[notif.file].push(notif);
+            });
+
+            notificationsList.innerHTML = '';
+            Object.keys(notificationsByFile).forEach(fileName => {
+                const fileNotifications = notificationsByFile[fileName];
+                const notificationItem = document.createElement('div');
+                notificationItem.className = 'notification-item';
+                notificationItem.innerHTML = `
+                    <div class="notification-file">📁 ${fileName}</div>
+                    <div class="notification-message">
+                        ${fileNotifications.length} anomalie(s) détectée(s)
+                    </div>
+                `;
+                notificationsList.appendChild(notificationItem);
+            });
+        }
+
+        function showLoadingMessage() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant-message loading';
+            loadingDiv.innerHTML = `
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                🔍 Analyse en cours - Détection des anomalies...
+            `;
+            chatWindow.appendChild(loadingDiv);
+            scrollToBottom();
+            return loadingDiv;
+        }
+
+        // --- GESTION DES THÈMES ---
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('swis-theme') || 'swis-blue';
+            selectTheme(savedTheme);
+        }
+
+        function selectTheme(themeName) {
+            document.body.classList.remove('theme-white', 'theme-black', 'theme-professional', 'theme-dark', 'theme-green', 'theme-purple');
+            
+            if (themeName !== 'swis-blue') {
+                document.body.classList.add(`theme-${themeName}`);
+            }
+            
+            if (themeSelector) themeSelector.value = themeName;
+            localStorage.setItem('swis-theme', themeName);
+            
+            document.querySelectorAll('.preview-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.theme === themeName);
+            });
+        }
+
+        // --- GESTION DU RESPONSIVE ---
+
+        function toggleMobileMenu() {
+            historyPanel.classList.toggle('mobile-open');
+        }
+
+        function hideMobileMenu() {
+            historyPanel.classList.remove('mobile-open');
+        }
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 1024) {
+                hideMobileMenu();
+            }
+        });
+
+        // --- GESTION DES FICHIERS ---
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                currentFiles = Array.from(files);
+                const fileNames = currentFiles.map(f => f.name).join(', ');
+                const totalSize = currentFiles.reduce((acc, f) => acc + f.size, 0);
+                
+                fileDisplay.textContent = `${files.length} fichier(s) - ${(totalSize / 1024 / 1024).toFixed(2)} MB`;
+                fileCounter.textContent = `${files.length} fichier(s)`;
+                updatePreviewBadge(files.length);
+                showDataButton.disabled = false;
+                showResultsButton.disabled = false;
+                
+                setTimeout(() => {
+                    startAnalysis(files);
+                }, 500);
+            } else {
+                resetFileInputs();
+            }
+        }
+
+        // --- APERÇU DES DONNÉES ---
+
+        async function showDataPreview() {
+            if (currentThreadId === '0' && currentFiles.length === 0) {
+                showToast('Aucun fichier à afficher', 'error');
+                return;
+            }
+
+            try {
+                let filesData = [];
+                
+                if (currentThreadId === '0') {
+                    // Nouvelle analyse - utiliser les fichiers actuels
+                    filesData = await readCurrentFiles();
+                } else {
+                    // Analyse existante - récupérer depuis l'API
+                    const response = await fetch(`/api/thread/${currentThreadId}/files`);
+                    if (!response.ok) throw new Error('Impossible de charger les fichiers');
+                    const data = await response.json();
+                    filesData = data.files;
+                }
+
+                displayFilesPreview(filesData);
+                showPreviewModal();
+                
+            } catch (error) {
+                console.error('Erreur aperçu:', error);
+                showToast('Erreur lors du chargement des fichiers', 'error');
+            }
+        }
+
+        async function readCurrentFiles() {
+            const filesData = [];
+            
+            for (const file of currentFiles) {
+                try {
+                    const content = await readFileContent(file);
+                    filesData.push({
+                        filename: file.name,
+                        content: content,
+                        mime_type: file.type,
+                        size_kb: file.size / 1024
+                    });
+                } catch (error) {
+                    console.error(`Erreur lecture ${file.name}:`, error);
+                    filesData.push({
+                        filename: file.name,
+                        content: `Erreur lors de la lecture du fichier: ${error.message}`,
+                        mime_type: file.type,
+                        size_kb: file.size / 1024
+                    });
+                }
+            }
+            
+            return filesData;
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        resolve(`Fichier Excel: ${file.name}\n(Contenu non affiché en aperçu)`);
+                    } else if (file.type === 'application/pdf') {
+                        resolve(`Fichier PDF: ${file.name}\n(Contenu non affiché en aperçu)`);
+                    } else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                        // Pour CSV, on peut essayer d'afficher le contenu
+                        const text = e.target.result;
+                        resolve(text.substring(0, 5000) + (text.length > 5000 ? '...' : ''));
+                    } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+                        const text = e.target.result;
+                        resolve(text.substring(0, 5000) + (text.length > 5000 ? '...' : ''));
+                    } else {
+                        resolve(`Fichier: ${file.name}\nType: ${file.type}\n(Taille: ${(file.size/1024).toFixed(2)} KB)`);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('Erreur de lecture du fichier'));
+                };
+                
+                if (file.type.includes('sheet') || file.type === 'application/pdf') {
+                    resolve(`Fichier: ${file.name}\nType: ${file.type}\n(Taille: ${(file.size/1024).toFixed(2)} KB)`);
+                } else {
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        function displayFilesPreview(filesData) {
+            if (filesData.length === 0) {
+                previewContent.innerHTML = `
+                    <div class="no-preview">
+                        <h3>📁 Aucun fichier à afficher</h3>
+                        <p>Les fichiers n'ont pas encore été chargés ou analysés.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            previewContent.innerHTML = '';
+            
+            filesData.forEach(fileData => {
+                const filePreview = document.createElement('div');
+                filePreview.className = 'file-preview';
+                
+                filePreview.innerHTML = `
+                    <div class="file-preview-header">
+                        📄 ${fileData.filename} (${fileData.size_kb.toFixed(2)} KB)
+                    </div>
+                    <div class="file-preview-content">
+                        ${fileData.content || 'Aucun contenu disponible'}
+                    </div>
+                `;
+                
+                previewContent.appendChild(filePreview);
+            });
+        }
+
+        // --- FONCTIONNALITÉS DE PARTAGE AMÉLIORÉES ---
+
+        async function loadShareContent(threadId) {
+            try {
+                const response = await fetch(`/api/thread/${threadId}`);
+                if (!response.ok) throw new Error('Impossible de charger l\'analyse');
+                
+                const threadData = await response.json();
+                currentShareContent = generateCompleteShareContent(threadData);
+                
+                document.getElementById('share-preview').textContent = currentShareContent;
+                
+            } catch (error) {
+                console.error('Erreur chargement partage:', error);
+                document.getElementById('share-preview').textContent = 'Erreur lors du chargement du contenu.';
+            }
+        }
+
+        function generateCompleteShareContent(threadData) {
+            const title = threadData.title;
+            const date = new Date(threadData.messages[0]?.date_message || new Date()).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const time = new Date(threadData.messages[0]?.date_message || new Date()).toLocaleTimeString('fr-FR');
+            
+            let content = `🔍 SWIS MADAGASCAR - RAPPORT COMPLET D'ANALYSE\n`;
+            content += `═`.repeat(50) + `\n\n`;
+            content += `📋 TITRE: ${title}\n`;
+            content += `📅 DATE: ${date}\n`;
+            content += `🕒 HEURE: ${time}\n`;
+            content += `🔢 NOMBRE DE MESSAGES: ${threadData.messages.length}\n\n`;
+            
+            content += `📊 RÉSUMÉ DE L'ANALYSE\n`;
+            content += `─`.repeat(30) + `\n\n`;
+            
+            // Ajouter TOUS les messages de l'historique
+            threadData.messages.forEach((msg, index) => {
+                content += `${msg.sender === 'user' ? '👤 UTILISATEUR' : '🤖 ASSISTANT SWIS'}\n`;
+                content += `Message ${index + 1}/${threadData.messages.length}\n`;
+                content += `Date: ${new Date(msg.date_message).toLocaleString('fr-FR')}\n`;
+                content += `Statut: ${msg.status || 'Succès'}\n`;
+                
+                if (msg.files && msg.files.length > 0) {
+                    content += `Fichiers: ${msg.files.join(', ')}\n`;
+                }
+                
+                content += `\n${msg.content}\n`;
+                content += `─`.repeat(50) + `\n\n`;
+            });
+            
+            // Statistiques de l'analyse
+            const totalUserMessages = threadData.messages.filter(msg => msg.sender === 'user').length;
+            const totalAssistantMessages = threadData.messages.filter(msg => msg.sender === 'assistant').length;
+            
+            content += `📈 STATISTIQUES DE L'ANALYSE\n`;
+            content += `─`.repeat(30) + `\n`;
+            content += `• Messages utilisateur: ${totalUserMessages}\n`;
+            content += `• Messages assistant: ${totalAssistantMessages}\n`;
+            content += `• Total des échanges: ${threadData.messages.length}\n`;
+            content += `• Durée estimée: ${calculateAnalysisDuration(threadData.messages)} minutes\n\n`;
+            
+            content += `═`.repeat(50) + `\n`;
+            content += `📊 Généré par SWIS Madagascar - Système d'Analyse Intelligente\n`;
+            content += `🌐 www.swis-madagascar.com\n`;
+            content += `📞 Support: +261 XX XXX XXX\n`;
+            content += `🕒 ${new Date().toLocaleString('fr-FR')}\n`;
+            
+            return content;
+        }
+
+        function calculateAnalysisDuration(messages) {
+            if (messages.length < 2) return 0;
+            
+            const firstMessage = new Date(messages[0].date_message);
+            const lastMessage = new Date(messages[messages.length - 1].date_message);
+            const durationMs = lastMessage - firstMessage;
+            return Math.round(durationMs / (1000 * 60)); // Convertir en minutes
+        }
+
+        async function executeShare() {
+            try {
+                switch (currentShareOption) {
+                    case 'clipboard':
+                        await copyToClipboard();
+                        break;
+                    case 'email':
+                        await shareByEmail();
+                        break;
+                }
+            } catch (error) {
+                console.error('Erreur partage:', error);
+                showToast('Erreur lors du partage', 'error');
+            }
+        }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentShareContent);
+                document.getElementById('copy-success').classList.add('show');
+                showToast('Contenu copié dans le presse-papier avec succès!', 'success');
+                setTimeout(() => {
+                    document.getElementById('copy-success').classList.remove('show');
+                }, 3000);
+            } catch (error) {
+                // Fallback pour les navigateurs plus anciens
+                const textArea = document.createElement('textarea');
+                textArea.value = currentShareContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                document.getElementById('copy-success').classList.add('show');
+                showToast('Contenu copié dans le presse-papier avec succès!', 'success');
+                setTimeout(() => {
+                    document.getElementById('copy-success').classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        async function shareByEmail() {
+            const email = document.getElementById('email-input').value;
+            const subject = document.getElementById('email-subject').value;
+            const message = document.getElementById('email-message').value;
+            
+            if (!email) {
+                showToast('Veuillez entrer une adresse email', 'error');
+                return;
+            }
+            
+            if (!validateEmail(email)) {
+                showToast('Veuillez entrer une adresse email valide', 'error');
+                return;
+            }
+            
+            const emailContent = `${message}\n\n--- RAPPORT D'ANALYSE COMPLET ---\n\n${currentShareContent}`;
+            const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailContent)}`;
+            
+            window.location.href = mailtoLink;
+            showToast('Client email ouvert avec le rapport complet', 'success');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // --- GESTION DE L'HISTORIQUE ---
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history?limit=100');
+                if (!response.ok) throw new Error('Erreur de chargement de l\'historique');
+                const data = await response.json();
+                displayHistory(data.history);
+            } catch (error) {
+                console.error('Erreur historique:', error);
+                historyListDiv.innerHTML = `<div style="padding: 1.25rem; color: #ef4444; text-align: center;">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        function displayHistory(history) {
+            historyListDiv.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyListDiv.innerHTML = '<div style="padding: 1.25rem; text-align: center; color: #9ca3af;">Aucune analyse récente</div>';
+                return;
+            }
+            
+            const groupedByDate = groupByDate(history);
+            
+            Object.keys(groupedByDate).sort().reverse().forEach(date => {
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'history-date-header';
+                dateHeader.textContent = formatDateHeader(date);
+                historyListDiv.appendChild(dateHeader);
+                
+                groupedByDate[date].forEach(item => {
+                    historyListDiv.appendChild(createHistoryItem(item));
+                });
+            });
+        }
+
+        function groupByDate(history) {
+            return history.reduce((groups, item) => {
+                const date = item.date.substring(0, 10);
+                if (!groups[date]) groups[date] = [];
+                groups[date].push(item);
+                return groups;
+            }, {});
+        }
+
+        function formatDateHeader(date) {
+            const today = new Date().toISOString().substring(0, 10);
+            const yesterday = new Date(Date.now() - 86400000).toISOString().substring(0, 10);
+            
+            if (date === today) return "Aujourd'hui";
+            if (date === yesterday) return "Hier";
+            
+            return new Date(date).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function createHistoryItem(item) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'history-item';
+            itemDiv.setAttribute('data-id', item.id);
+            
+            const time = new Date(item.date).toLocaleTimeString('fr-FR', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            const statusClass = item.last_status === 'Succès' ? 'status-success' : 
+                              item.last_status.includes('Erreur') ? 'status-error' : 'status-warning';
+            
+            itemDiv.innerHTML = `
+                <div class="history-item-content">
+                    <span class="history-item-title">${item.title}</span>
+                    <div class="history-item-meta">
+                        <span>${time}</span>
+                        <span class="status-badge ${statusClass}">${item.last_status}</span>
+                    </div>
+                </div>
+                <div class="history-item-actions">
+                    <button class="history-item-action share" onclick="shareThread(${item.id}, event)" title="Partager cette analyse">
+                        📤
+                    </button>
+                    <button class="history-item-action delete" onclick="deleteThread(${item.id}, event)" title="Supprimer cette analyse">
+                        🗑️
+                    </button>
+                </div>
+            `;
+            
+            itemDiv.addEventListener('click', () => showThreadDetail(item.id, item.title));
+            return itemDiv;
+        }
+
+        // --- FONCTION AMÉLIORÉE POUR SUPPRIMER UN THREAD ---
+        async function deleteThread(id, event = null) {
+            if (event) event.stopPropagation();
+            
+            // Modal de confirmation amélioré
+            const confirmation = await showDeleteConfirmationModal(id);
+            if (!confirmation) return;
+            
+            try {
+                // Afficher un indicateur de chargement
+                const deleteButton = event ? event.target.closest('.history-item-action') : null;
+                if (deleteButton) {
+                    deleteButton.innerHTML = '<div class="delete-loading"></div>';
+                    deleteButton.disabled = true;
+                }
+                
+                const response = await fetch(`/api/thread/${id}`, { 
+                    method: 'DELETE' 
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Échec de la suppression');
+                }
+                
+                // Afficher un message de succès
+                showToast('Analyse supprimée avec succès', 'success');
+                
+                // Recharger l'historique
+                if (currentThreadId === id.toString()) {
+                    showNewDiscussionView();
+                }
+                
+                await loadHistory();
+                
+            } catch (error) {
+                console.error('Erreur suppression:', error);
+                showToast(`Erreur: ${error.message}`, 'error');
+                
+                // Restaurer le bouton
+                const deleteButton = event ? event.target.closest('.history-item-action') : null;
+                if (deleteButton) {
+                    deleteButton.innerHTML = '🗑️';
+                    deleteButton.disabled = false;
+                }
+            }
+        }
+
+        // Mettre à jour la fonction shareThread existante
+        async function shareThread(id, event = null) {
+            if (event) event.stopPropagation();
+            showShareModal(id);
+        }
+
+        // Modal de confirmation amélioré
+        function showDeleteConfirmationModal(threadId) {
+            return new Promise((resolve) => {
+                // Créer le modal de confirmation
+                const modal = document.createElement('div');
+                modal.className = 'confirmation-modal-overlay';
+                modal.innerHTML = `
+                    <div class="confirmation-modal">
+                        <div class="confirmation-header">
+                            <div class="confirmation-icon">🗑️</div>
+                            <h3>Confirmer la suppression</h3>
+                        </div>
+                        <div class="confirmation-body">
+                            <p>Êtes-vous sûr de vouloir supprimer l'analyse <strong>#${threadId}</strong> ?</p>
+                            <p class="warning-text">Cette action est irréversible et supprimera tous les messages associés.</p>
+                        </div>
+                        <div class="confirmation-actions">
+                            <button class="confirm-btn cancel-btn" onclick="closeConfirmationModal(false)">
+                                Annuler
+                            </button>
+                            <button class="confirm-btn delete-btn" onclick="closeConfirmationModal(true)">
+                                Supprimer définitivement
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Stocker la résolution de la promesse
+                window.closeConfirmationModal = (result) => {
+                    document.body.removeChild(modal);
+                    resolve(result);
+                    delete window.closeConfirmationModal;
+                };
+            });
+        }
+
+        // Fonction pour afficher des notifications toast
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span class="toast-icon">${type === 'success' ? '✅' : '❌'}</span>
+                    <span class="toast-message">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Animation d'entrée
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Suppression automatique après 3 secondes
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        async function showThreadDetail(id, title) {
+            try {
+                currentThreadId = id.toString();
+                chatTitle.textContent = `Swis Madagascar - ${title}`;
+                chatTitle.setAttribute('data-thread-id', id);
+                
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-id') === id.toString()) {
+                        item.classList.add('active');
+                    }
+                });
+                
+                chatWindow.innerHTML = '<div class="loading">Chargement de l\'analyse...</div>';
+                
+                const response = await fetch(`/api/thread/${id}`);
+                if (!response.ok) throw new Error('Impossible de charger l\'analyse');
+                
+                const data = await response.json();
+                displayThreadMessages(data);
+                
+                const hasAssistantMessages = data.messages.some(msg => msg.sender === 'assistant');
+                showResultsButton.disabled = !hasAssistantMessages;
+                hasAnalysisResults = hasAssistantMessages;
+                
+                if (hasAnalysisResults) {
+                    hideUploadArea();
+                }
+                
+            } catch (error) {
+                chatWindow.innerHTML = `<div class="message system-message error-message">Erreur: ${error.message}</div>`;
+            }
+            hideMobileMenu();
+            hideNotificationsModal();
+            hideSettingsModal();
+            hidePreviewModal();
+            hideShareModal();
+        }
+
+        function displayThreadMessages(threadData) {
+            chatWindow.innerHTML = '';
+            currentAnomalies = [];
+            notifications = [];
+            
+            threadData.messages.forEach(message => {
+                const senderClass = message.sender === 'user' ? 'user-message' : 'assistant-message';
+                const fileInfo = message.files && message.files.length > 0 
+                    ? message.files.join(', ')
+                    : null;
+                
+                // Gestion spéciale des messages d'erreur
+                if (message.status !== 'Succès' && message.status !== 'En cours') {
+                    appendMessage(`
+                        <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                                <span>⚠️</span>
+                                <span>Problème lors de l'analyse</span>
+                            </div>
+                            <div style="color: #7f1d1d; font-size: 0.9em;">
+                                ${message.content}
+                            </div>
+                            <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                                <strong>💡 Conseil :</strong> Réessayez l'analyse ou contactez le support si le problème persiste.
+                            </div>
+                        </div>
+                    `, 'error-message');
+                } else {
+                    appendMessage(message.content, senderClass, fileInfo);
+                }
+            });
+            
+            if (showResultsOnly) {
+                chatWindow.classList.add('results-only');
+            }
+            
+            updateNotificationBadge();
+        }
+
+        // --- LANCEMENT DE L'ANALYSE ---
+
+        async function startAnalysis(files) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            hideUploadArea();
+            chatWindow.innerHTML = '';
+            currentAnomalies = [];
+            notifications = [];
+            updateNotificationBadge();
+            
+            const fileInfo = files.length > 0 ? `${files.length} fichier(s)` : null;
+            appendMessage(`Analyse automatique des fichiers déposés - Détection des anomalies en cours...`, 'user-message', fileInfo);
+            
+            const loadingMessage = showLoadingMessage();
+            
+            const formData = new FormData();
+            formData.append('prompt', "Analyse détaillée avec localisation des anomalies");
+            formData.append('thread_id', currentThreadId);
+            
+            for (const file of files) {
+                formData.append('files', file);
+            }
+            
+            try {
+                const response = await fetch('/api/process_query', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                chatWindow.removeChild(loadingMessage);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Erreur serveur');
+                }
+                
+                const data = await response.json();
+                await handleResponse(data);
+                
+            } catch (error) {
+                chatWindow.removeChild(loadingMessage);
+                appendMessage(`
+                    <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                            <span>❌</span>
+                            <span>Échec de l'analyse</span>
+                        </div>
+                        <div style="color: #7f1d1d; font-size: 0.9em;">
+                            ${error.message}
+                        </div>
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                            <strong>💡 Conseil :</strong> Vérifiez votre connexion et réessayez.
+                        </div>
+                    </div>
+                `, 'error-message');
+                showUploadArea();
+            } finally {
+                isProcessing = false;
+                scrollToBottom();
+            }
+        }
+
+        async function handleResponse(data) {
+            // Vérifier si c'est une erreur
+            if (data.status !== "Succès") {
+                appendMessage(`
+                    <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 0.5rem; padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">
+                            <span>⚠️</span>
+                            <span>Service Temporairement Indisponible</span>
+                        </div>
+                        <div style="color: #7f1d1d; font-size: 0.9em;">
+                            ${data.response}
+                        </div>
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef7ed; border-radius: 0.375rem;">
+                            <strong>💡 Conseil :</strong> Réessayez dans 2-3 minutes.
+                        </div>
+                    </div>
+                `, 'error-message');
+                showUploadArea();
+                return;
+            }
+            
+            // Réponse normale
+            appendMessage(data.response, 'assistant-message');
+            showResultsButton.disabled = false;
+            hasAnalysisResults = true;
+            
+            if (data.anomaly_stats) {
+                updateNotificationBadge(data.anomaly_stats);
+                
+                if (data.anomaly_stats.total_anomalies > 0) {
+                    notifications.push({
+                        type: 'summary',
+                        message: `${data.anomaly_stats.total_anomalies} anomalie(s) détectée(s)`,
+                        details: data.anomaly_stats
+                    });
+                }
+            }
+            
+            if (currentThreadId === '0') {
+                currentThreadId = data.thread_id.toString();
+                chatTitle.setAttribute('data-thread-id', currentThreadId);
+                
+                const files = fileInput.files;
+                if (files.length > 0) {
+                    const fileNames = Array.from(files).map(f => f.name).join(', ');
+                    const newTitle = fileNames.length > 50 ? fileNames.substring(0, 47) + '...' : fileNames;
+                    chatTitle.textContent = `Swis Madagascar - ${newTitle}`;
+                }
+                
+                await loadHistory();
+            }
+        }
+
+        // Événements des boutons
+        showResultsButton.addEventListener('click', () => {
+            showResultsOnly = !showResultsOnly;
+            if (showResultsOnly) {
+                chatWindow.classList.add('results-only');
+                showResultsButton.innerHTML = '<span>📋 Tout voir</span>';
+            } else {
+                chatWindow.classList.remove('results-only');
+                showResultsButton.innerHTML = '<span>📊 Résultats</span>';
+            }
+        });
+
+        notificationsButton.addEventListener('click', toggleNotificationsModal);
+        newAnalysisButton.addEventListener('click', showNewDiscussionView);
+
+        // Initialisation
+        showNewDiscussionView();
+    </script>
+</body>
+</html>
