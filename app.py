@@ -1,15 +1,15 @@
 import os
-os.environ["PYTHONASYNCIODEBUG"] = "0"  # Désactive debug asyncio
+os.environ["PYTHONASYNCIODEBUG"] = "0"
 os.environ["UVICORN_LOOP"] = "asyncio"  
 
 import sqlite3
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from google.genai import Client
 from google.genai.errors import APIError
-import sys   # <- ilaina tokoa
+import sys
 from typing import Annotated, Optional
 import shutil
 import tempfile
@@ -22,11 +22,11 @@ import re
 import time
 import pandas as pd
 import io
-import logging
+import uuid
 
 # ⚡ Production-safe logging
 logging.basicConfig(
-    level=logging.WARNING,  # WARNING sy ERROR ihany no haseho
+    level=logging.WARNING,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
@@ -36,15 +36,12 @@ app = FastAPI()
 def resource_path(relative_path):
     """Retourne le chemin correct même dans un .exe"""
     if hasattr(sys, "_MEIPASS"):
-        # chemin temporaire PyInstaller
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
-
 
 # Mount static folder correctement
 static_dir = resource_path("static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
 
 # ---------------------
 # Configuration du logging
@@ -55,8 +52,6 @@ logger = logging.getLogger(__name__)
 # ---------------------
 # Configuration et Initialisation de l'API Gemini (GenAI)
 # ---------------------
-
-# Utilisation d'une variable d'environnement pour plus de sécurité
 API_KEY_NAO = os.getenv("GEMINI_API_KEY", "AIzaSyCCnrruOeLHd5V4gKoDnhoKdXQThHqWKHs")
 
 try:
@@ -72,7 +67,7 @@ except Exception as e:
 app = FastAPI(
     title="Swis Madagascar - Système d'Analyse Intelligente",
     description="Application de détection automatique des anomalies financières et de stock",
-    version="4.0.0"
+    version="5.0.0"
 )
 
 # ---------------------
@@ -86,7 +81,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration des dossiers statiques
+# Configuration des dossiers
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -135,10 +130,46 @@ def init_db():
         )
     """)
     
+    # TABLE 4: ANOMALIES_DETAILLEES (pour stocker les anomalies détectées)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ANOMALIES_DETAILLEES (
+            anomalie_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            thread_id INTEGER NOT NULL,
+            fichier_source VARCHAR(255) NOT NULL,
+            type_anomalie VARCHAR(100) NOT NULL,
+            description TEXT NOT NULL,
+            localisation VARCHAR(255),
+            impact_estime DECIMAL(15,2),
+            criticite VARCHAR(20),
+            recommandation TEXT,
+            date_detection DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (thread_id) REFERENCES THREADS(thread_id) ON DELETE CASCADE
+        )
+    """)
+    
+    # TABLE 5: STATISTIQUES_FICHIERS (pour stocker les stats globales)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS STATISTIQUES_FICHIERS (
+            stat_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            thread_id INTEGER NOT NULL,
+            nom_fichier VARCHAR(255) NOT NULL,
+            type_fichier VARCHAR(100),
+            nombre_lignes INTEGER,
+            nombre_colonnes INTEGER,
+            chiffre_affaires DECIMAL(15,2),
+            nombre_transactions INTEGER,
+            montant_reductions DECIMAL(15,2),
+            donnees_manquantes INTEGER,
+            FOREIGN KEY (thread_id) REFERENCES THREADS(thread_id) ON DELETE CASCADE
+        )
+    """)
+    
     # Création d'index pour améliorer les performances
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON MESSAGES(thread_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_date ON MESSAGES(date_message)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_threads_date_modification ON THREADS(date_modification)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_anomalies_thread_id ON ANOMALIES_DETAILLEES(thread_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_stats_thread_id ON STATISTIQUES_FICHIERS(thread_id)")
     
     conn.commit()
     conn.close()
@@ -162,6 +193,52 @@ def update_db_schema():
         else:
             logger.info("La colonne file_content existe déjà.")
             
+        # Vérifier si la table ANOMALIES_DETAILLEES existe
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ANOMALIES_DETAILLEES'")
+        if not cursor.fetchone():
+            logger.info("Création de la table ANOMALIES_DETAILLEES...")
+            cursor.execute("""
+                CREATE TABLE ANOMALIES_DETAILLEES (
+                    anomalie_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    thread_id INTEGER NOT NULL,
+                    fichier_source VARCHAR(255) NOT NULL,
+                    type_anomalie VARCHAR(100) NOT NULL,
+                    description TEXT NOT NULL,
+                    localisation VARCHAR(255),
+                    impact_estime DECIMAL(15,2),
+                    criticite VARCHAR(20),
+                    recommandation TEXT,
+                    date_detection DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (thread_id) REFERENCES THREADS(thread_id) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("CREATE INDEX idx_anomalies_thread_id ON ANOMALIES_DETAILLEES(thread_id)")
+            conn.commit()
+            logger.info("Table ANOMALIES_DETAILLEES créée avec succès.")
+            
+        # Vérifier si la table STATISTIQUES_FICHIERS existe
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='STATISTIQUES_FICHIERS'")
+        if not cursor.fetchone():
+            logger.info("Création de la table STATISTIQUES_FICHIERS...")
+            cursor.execute("""
+                CREATE TABLE STATISTIQUES_FICHIERS (
+                    stat_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    thread_id INTEGER NOT NULL,
+                    nom_fichier VARCHAR(255) NOT NULL,
+                    type_fichier VARCHAR(100),
+                    nombre_lignes INTEGER,
+                    nombre_colonnes INTEGER,
+                    chiffre_affaires DECIMAL(15,2),
+                    nombre_transactions INTEGER,
+                    montant_reductions DECIMAL(15,2),
+                    donnees_manquantes INTEGER,
+                    FOREIGN KEY (thread_id) REFERENCES THREADS(thread_id) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("CREATE INDEX idx_stats_thread_id ON STATISTIQUES_FICHIERS(thread_id)")
+            conn.commit()
+            logger.info("Table STATISTIQUES_FICHIERS créée avec succès.")
+            
     except Exception as e:
         logger.error(f"Erreur lors de la mise à jour du schéma: {e}")
     finally:
@@ -177,7 +254,7 @@ def get_db_connection():
     """Retourne une connexion à la base de données avec gestion d'erreurs."""
     try:
         conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row  # Pour accéder aux colonnes par nom
+        conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
         logger.error(f"Erreur de connexion à la base de données: {e}")
@@ -222,6 +299,31 @@ def _save_files_to_message(cursor, message_id, file_infos_for_db):
              f_info['mime_type'], f_info['gemini_file_name'], f_info.get('file_content', ''))
         )
 
+def _save_detailed_anomalies(cursor, thread_id, anomalies_detailed):
+    """Enregistre les anomalies détaillées dans la base de données."""
+    for anomaly in anomalies_detailed:
+        cursor.execute(
+            """INSERT INTO ANOMALIES_DETAILLEES 
+               (thread_id, fichier_source, type_anomalie, description, localisation, impact_estime, criticite, recommandation)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (thread_id, anomaly['fichier_source'], anomaly['type_anomalie'], 
+             anomaly['description'], anomaly.get('localisation'), anomaly.get('impact_estime'),
+             anomaly.get('criticite'), anomaly.get('recommandation'))
+        )
+
+def _save_file_statistics(cursor, thread_id, file_stats):
+    """Enregistre les statistiques des fichiers analysés."""
+    for stat in file_stats:
+        cursor.execute(
+            """INSERT INTO STATISTIQUES_FICHIERS 
+               (thread_id, nom_fichier, type_fichier, nombre_lignes, nombre_colonnes, 
+                chiffre_affaires, nombre_transactions, montant_reductions, donnees_manquantes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (thread_id, stat['nom_fichier'], stat['type_fichier'], stat['nombre_lignes'], 
+             stat['nombre_colonnes'], stat.get('chiffre_affaires'), stat.get('nombre_transactions'),
+             stat.get('montant_reductions'), stat.get('donnees_manquantes'))
+        )
+
 def _cleanup_files(gemini_uploaded_files, temp_file_paths):
     """Nettoie les fichiers temporaires et les fichiers Gemini."""
     for f in gemini_uploaded_files:
@@ -242,18 +344,15 @@ def _cleanup_files(gemini_uploaded_files, temp_file_paths):
 def extract_anomaly_stats(response_text):
     """Extrait les statistiques d'anomalies de la réponse."""
     try:
-        # Compter les anomalies par type
         total_anomalies = len(re.findall(r'🚨\s*\*\*ANOMALIE DÉTECTÉE\*\*', response_text, re.IGNORECASE))
         financial_anomalies = len(re.findall(r'ANOMALIES FINANCIÈRES', response_text, re.IGNORECASE))
         stock_anomalies = len(re.findall(r'ERREURS DE STOCK', response_text, re.IGNORECASE))
         pricing_anomalies = len(re.findall(r'ANOMALIES DE TARIFICATION', response_text, re.IGNORECASE))
         
-        # Extraire les montants d'impact
         impact_amounts = re.findall(r'💰 Impact :.*?(\d+[\d\s,]*\.?\d*)\s*(MGA|€|euros?|ariary)', response_text, re.IGNORECASE)
         total_impact = 0
         for amount, currency in impact_amounts:
             try:
-                # Nettoyer le montant
                 clean_amount = amount.replace(' ', '').replace(',', '.')
                 total_impact += float(clean_amount)
             except ValueError:
@@ -282,6 +381,142 @@ def extract_anomaly_stats(response_text):
             "impact_currency": "N/A"
         }
 
+def extract_detailed_anomalies(response_text, file_names):
+    """Extrait les anomalies détaillées de la réponse pour un stockage structuré."""
+    try:
+        anomalies = []
+        
+        # Pattern pour détecter chaque anomalie
+        anomaly_pattern = r'🚨\s*\*\*ANOMALIE DÉTECTÉE\*\*(.*?)(?=🚨\s*\*\*ANOMALIE DÉTECTÉE\*\*|🔄\s*\*\*ÉTAPE|📊\s*\*\*RÉSUMÉ|$)'
+        matches = re.findall(anomaly_pattern, response_text, re.DOTALL | re.IGNORECASE)
+        
+        for match in matches:
+            anomaly_text = match.strip()
+            
+            # Extraire les informations structurées
+            fichier_match = re.search(r'📁\s*Fichier:\s*(.*?)(?=\n|$)', anomaly_text, re.IGNORECASE)
+            localisation_match = re.search(r'📍\s*Localisation:\s*(.*?)(?=\n|$)', anomaly_text, re.IGNORECASE)
+            description_match = re.search(r'🔎\s*Description:\s*(.*?)(?=\n|$)', anomaly_text, re.IGNORECASE)
+            impact_match = re.search(r'💰\s*Impact:\s*(.*?)(?=\n|$)', anomaly_text, re.IGNORECASE)
+            recommandation_match = re.search(r'✅\s*Recommandation:\s*(.*?)(?=\n|$)', anomaly_text, re.IGNORECASE)
+            
+            # Déterminer le type d'anomalie
+            type_anomalie = "Autre"
+            if re.search(r'financier|argent|coût|prix|euro|ariary|mga', anomaly_text, re.IGNORECASE):
+                type_anomalie = "Financière"
+            elif re.search(r'stock|inventaire|quantité|produit', anomaly_text, re.IGNORECASE):
+                type_anomalie = "Stock"
+            elif re.search(r'tarification|prix|coût', anomaly_text, re.IGNORECASE):
+                type_anomalie = "Tarification"
+            
+            # Déterminer la criticité
+            criticite = "Moyenne"
+            if re.search(r'critique|urgent|grave|important', anomaly_text, re.IGNORECASE):
+                criticite = "Élevée"
+            elif re.search(r'mineur|faible|petit', anomaly_text, re.IGNORECASE):
+                criticite = "Faible"
+            
+            # Extraire l'impact numérique
+            impact_estime = 0
+            if impact_match:
+                impact_text = impact_match.group(1)
+                montant_match = re.search(r'(\d+[\d\s,]*\.?\d*)', impact_text)
+                if montant_match:
+                    try:
+                        montant = montant_match.group(1).replace(' ', '').replace(',', '.')
+                        impact_estime = float(montant)
+                    except ValueError:
+                        pass
+            
+            anomalies.append({
+                "fichier_source": fichier_match.group(1).strip() if fichier_match else file_names[0] if file_names else "Fichier inconnu",
+                "type_anomalie": type_anomalie,
+                "description": description_match.group(1).strip() if description_match else "Description non spécifiée",
+                "localisation": localisation_match.group(1).strip() if localisation_match else "Localisation non spécifiée",
+                "impact_estime": impact_estime,
+                "criticite": criticite,
+                "recommandation": recommandation_match.group(1).strip() if recommandation_match else "Recommandation non spécifiée"
+            })
+        
+        return anomalies
+    except Exception as e:
+        logger.error(f"Erreur lors de l'extraction des anomalies détaillées: {e}")
+        return []
+
+def analyze_file_statistics(file_path, mime_type, filename):
+    """Analyse les statistiques de base d'un fichier."""
+    try:
+        stats = {
+            "nom_fichier": filename,
+            "type_fichier": mime_type,
+            "nombre_lignes": 0,
+            "nombre_colonnes": 0,
+            "chiffre_affaires": 0,
+            "nombre_transactions": 0,
+            "montant_reductions": 0,
+            "donnees_manquantes": 0
+        }
+        
+        if mime_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
+            df = pd.read_excel(file_path)
+            stats["nombre_lignes"] = len(df)
+            stats["nombre_colonnes"] = len(df.columns)
+            stats["donnees_manquantes"] = df.isnull().sum().sum()
+            
+            # Tentative d'identification des colonnes financières
+            for col in df.columns:
+                if any(keyword in str(col).lower() for keyword in ['montant', 'prix', 'total', 'chiffre', 'affaires', 'ca']):
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        stats["chiffre_affaires"] = df[col].sum()
+                elif any(keyword in str(col).lower() for keyword in ['quantité', 'qte', 'nombre']):
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        stats["nombre_transactions"] = df[col].sum()
+                elif any(keyword in str(col).lower() for keyword in ['réduction', 'remise', 'discount']):
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        stats["montant_reductions"] = df[col].sum()
+                        
+        elif mime_type == 'text/csv':
+            df = pd.read_csv(file_path, encoding='utf-8', errors='ignore')
+            stats["nombre_lignes"] = len(df)
+            stats["nombre_colonnes"] = len(df.columns)
+            stats["donnees_manquantes"] = df.isnull().sum().sum()
+            
+            # Tentative d'identification des colonnes financières
+            for col in df.columns:
+                if any(keyword in str(col).lower() for keyword in ['montant', 'prix', 'total', 'chiffre', 'affaires', 'ca']):
+                    try:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                        stats["chiffre_affaires"] = df[col].sum()
+                    except:
+                        pass
+                elif any(keyword in str(col).lower() for keyword in ['quantité', 'qte', 'nombre']):
+                    try:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                        stats["nombre_transactions"] = df[col].sum()
+                    except:
+                        pass
+                elif any(keyword in str(col).lower() for keyword in ['réduction', 'remise', 'discount']):
+                    try:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                        stats["montant_reductions"] = df[col].sum()
+                    except:
+                        pass
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de l'analyse des statistiques du fichier {filename}: {e}")
+        return {
+            "nom_fichier": filename,
+            "type_fichier": mime_type,
+            "nombre_lignes": 0,
+            "nombre_colonnes": 0,
+            "chiffre_affaires": 0,
+            "nombre_transactions": 0,
+            "montant_reductions": 0,
+            "donnees_manquantes": 0
+        }
+
 async def call_gemini_api_with_retry(contents, max_retries=3):
     """Effectue l'appel API avec système de retry et gestion d'erreurs."""
     
@@ -303,7 +538,7 @@ async def call_gemini_api_with_retry(contents, max_retries=3):
                         'temperature': 0.1,
                         'top_p': 0.8,
                         'top_k': 40,
-                        'max_output_tokens': 3000
+                        'max_output_tokens': 4000
                     }
                 )
                 
@@ -323,13 +558,11 @@ async def call_gemini_api_with_retry(contents, max_retries=3):
                 logger.error(f"❌ Erreur inattendue avec {model}: {e}")
                 continue
         
-        # Attente avant nouvelle tentative
         if attempt < max_retries - 1:
             wait_time = (attempt + 1) * 3
             logger.info(f"⏳ Attente de {wait_time}s avant nouvelle tentative...")
             time.sleep(wait_time)
     
-    # Échec de toutes les tentatives
     error_msg = """🔧 **Service Temporairement Indisponible**
 
 Nous rencontrons actuellement une forte demande sur notre service d'analyse.
@@ -347,41 +580,121 @@ Nous vous remercions de votre patience."""
     return error_msg, "Service Indisponible"
 
 def read_file_content(file_path, mime_type):
-    """Lit le contenu d'un fichier selon son type."""
+    """Lit le contenu d'un fichier selon son type avec un meilleur formatage."""
     try:
         if mime_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
-            # Fichier Excel - lecture limitée
             try:
-                df = pd.read_excel(file_path, nrows=50)  # Limiter à 50 lignes
-                return f"Fichier Excel: {os.path.basename(file_path)}\n\nAperçu des données (50 premières lignes):\n{df.to_string(max_rows=50, max_cols=10)}"
+                # Lire le fichier Excel
+                df = pd.read_excel(file_path, nrows=100)
+                
+                # Obtenir les informations de base
+                file_info = f"📊 FICHIER EXCEL: {os.path.basename(file_path)}\n"
+                file_info += f"📏 Dimensions: {df.shape[0]} lignes × {df.shape[1]} colonnes\n"
+                file_info += f"📋 Colonnes: {', '.join(df.columns.astype(str))}\n\n"
+                
+                # Informations sur les types de données
+                file_info += "🔍 TYPES DE DONNÉES PAR COLONNE:\n"
+                for col in df.columns:
+                    dtype = str(df[col].dtype)
+                    non_null = df[col].count()
+                    total = len(df[col])
+                    file_info += f"   • {col}: {dtype} ({non_null}/{total} non-null)\n"
+                
+                file_info += f"\n📋 APERÇU DES DONNÉES (premières 20 lignes):\n"
+                file_info += "─" * 80 + "\n"
+                
+                # Formater l'aperçu des données de manière plus lisible
+                preview_df = df.head(20)
+                
+                # Créer une représentation textuelle formatée
+                with pd.option_context('display.max_rows', 20, 'display.max_columns', 10, 'display.width', 1000):
+                    file_info += preview_df.to_string(index=False)
+                
+                file_info += f"\n\n📈 STATISTIQUES NUMÉRIQUES:\n"
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                if len(numeric_cols) > 0:
+                    file_info += df[numeric_cols].describe().to_string()
+                else:
+                    file_info += "   Aucune colonne numérique trouvée"
+                
+                return file_info
+                
             except Exception as e:
-                return f"Fichier Excel: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+                return f"📊 FICHIER EXCEL: {os.path.basename(file_path)}\n❌ Erreur de lecture: {str(e)}"
+                
         elif mime_type == 'text/csv':
-            # Fichier CSV - lecture limitée
             try:
-                df = pd.read_csv(file_path, nrows=50)  # Limiter à 50 lignes
-                return f"Fichier CSV: {os.path.basename(file_path)}\n\nAperçu des données (50 premières lignes):\n{df.to_string(max_rows=50, max_cols=10)}"
+                # Lire le fichier CSV
+                df = pd.read_csv(file_path, nrows=100, encoding='utf-8', errors='ignore')
+                
+                # Obtenir les informations de base
+                file_info = f"📄 FICHIER CSV: {os.path.basename(file_path)}\n"
+                file_info += f"📏 Dimensions: {df.shape[0]} lignes × {df.shape[1]} colonnes\n"
+                file_info += f"📋 Colonnes: {', '.join(df.columns.astype(str))}\n\n"
+                
+                # Informations sur les types de données
+                file_info += "🔍 TYPES DE DONNÉES PAR COLONNE:\n"
+                for col in df.columns:
+                    dtype = str(df[col].dtype)
+                    non_null = df[col].count()
+                    total = len(df[col])
+                    file_info += f"   • {col}: {dtype} ({non_null}/{total} non-null)\n"
+                
+                file_info += f"\n📋 APERÇU DES DONNÉES (premières 20 lignes):\n"
+                file_info += "─" * 80 + "\n"
+                
+                # Formater l'aperçu des données
+                preview_df = df.head(20)
+                
+                with pd.option_context('display.max_rows', 20, 'display.max_columns', 10, 'display.width', 1000):
+                    file_info += preview_df.to_string(index=False)
+                
+                file_info += f"\n\n📈 STATISTIQUES NUMÉRIQUES:\n"
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                if len(numeric_cols) > 0:
+                    file_info += df[numeric_cols].describe().to_string()
+                else:
+                    file_info += "   Aucune colonne numérique trouvée"
+                
+                return file_info
+                
             except Exception as e:
-                return f"Fichier CSV: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+                return f"📄 FICHIER CSV: {os.path.basename(file_path)}\n❌ Erreur de lecture: {str(e)}"
+                
         elif mime_type == 'application/pdf':
-            # Fichier PDF - retourne un message indiquant le contenu
-            return f"Fichier PDF: {os.path.basename(file_path)}\n(Taille: {os.path.getsize(file_path)/1024:.2f} KB)\n(Contenu non affiché en aperçu)"
+            return f"📑 FICHIER PDF: {os.path.basename(file_path)}\n📏 Taille: {os.path.getsize(file_path)/1024:.2f} KB\n💡 Contenu: Document PDF (analyse textuelle limitée)"
+        
         elif 'text' in mime_type:
-            # Fichier texte
             try:
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-                    preview = content[:2000] + "..." if len(content) > 2000 else content
-                    return f"Fichier texte: {os.path.basename(file_path)}\n\nContenu:\n{preview}"
+                    
+                file_info = f"📝 FICHIER TEXTE: {os.path.basename(file_path)}\n"
+                file_info += f"📏 Taille: {len(content)} caractères\n"
+                file_info += f"📊 Lignes: {len(content.splitlines())}\n\n"
+                
+                # Aperçu du contenu
+                preview_lines = content.splitlines()[:30]
+                file_info += "📋 APERÇU DU CONTENU:\n"
+                file_info += "─" * 80 + "\n"
+                file_info += "\n".join(preview_lines)
+                
+                if len(content.splitlines()) > 30:
+                    file_info += f"\n[...] {len(content.splitlines()) - 30} lignes supplémentaires"
+                
+                return file_info
+                
             except Exception as e:
-                return f"Fichier texte: {os.path.basename(file_path)}\n(Erreur lecture: {str(e)})"
+                return f"📝 FICHIER TEXTE: {os.path.basename(file_path)}\n❌ Erreur de lecture: {str(e)}"
+                
         else:
-            return f"Fichier: {os.path.basename(file_path)}\nType: {mime_type}\nTaille: {os.path.getsize(file_path)/1024:.2f} KB\n(Type non supporté pour l'aperçu détaillé)"
+            return f"📁 FICHIER: {os.path.basename(file_path)}\n🔤 Type: {mime_type}\n📏 Taille: {os.path.getsize(file_path)/1024:.2f} KB\n💡 Type non supporté pour l'aperçu détaillé"
+            
     except Exception as e:
         logger.error(f"Erreur lecture fichier {file_path}: {e}")
-        return f"Erreur lors de la lecture du fichier: {str(e)}"
+        return f"❌ Erreur lors de la lecture du fichier: {str(e)}"
 
-# --- Endpoints ---
+# --- Endpoints principaux ---
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
@@ -402,7 +715,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "4.0.0"
+        "version": "5.0.0"
     }
 
 @app.post("/api/process_query")
@@ -411,7 +724,7 @@ async def process_multimodal_query(
     thread_id: Annotated[Optional[int], Form(description="ID du thread pour la conversation continue")] = None,
     files: Annotated[list[UploadFile] | None, File(description="Liste de fichiers optionnels")] = None,
 ):
-    """Traite la requête multimodale avec gestion robuste des erreurs."""
+    """Traite la requête multimodale avec gestion robuste des erreurs et analyse structurée."""
     
     if not files or len(files) == 0:
         raise HTTPException(
@@ -426,6 +739,8 @@ async def process_multimodal_query(
     response_text = ""
     final_status = "Succès"
     anomaly_stats = {}
+    anomalies_detailed = []
+    file_statistics = []
     
     conn = None
     user_message_id = None
@@ -452,6 +767,7 @@ async def process_multimodal_query(
         max_file_size = 20 * 1024 * 1024
         
         file_details = []
+        file_names_list = []
         
         for file in files:
             if not file.filename:
@@ -495,6 +811,11 @@ async def process_multimodal_query(
                     })
                     
                     file_details.append(f"📄 {file.filename} ({(file_size/1024/1024):.2f} MB)")
+                    file_names_list.append(file.filename)
+                    
+                    # Analyser les statistiques du fichier
+                    file_stats = analyze_file_statistics(temp_file_path, uploaded_file_gemini.mime_type, file.filename)
+                    file_statistics.append(file_stats)
                     
             except Exception as e:
                 logger.error(f"Erreur upload fichier {file.filename}: {e}")
@@ -504,31 +825,94 @@ async def process_multimodal_query(
         # Sauvegarde des infos fichiers
         if files_info_for_db:
             _save_files_to_message(cursor, user_message_id, files_info_for_db)
+            
+        # Sauvegarde des statistiques
+        if file_statistics:
+            _save_file_statistics(cursor, thread_id, file_statistics)
     
-        # 4. Préparation du contenu
+        # 4. Préparation du contenu avec la nouvelle structure d'analyse simplifiée
         file_list_text = "\n".join(file_details)
         
+        # Préparer le résumé des statistiques
+        stats_summary = "📊 RÉSUMÉ GLOBAL DES FICHIERS ANALYSÉS:\n\n"
+        total_ca = 0
+        total_transactions = 0
+        total_reductions = 0
+        
+        for stat in file_statistics:
+            stats_summary += f"📁 {stat['nom_fichier']}:\n"
+            stats_summary += f"   • Lignes: {stat['nombre_lignes']:,}\n"
+            stats_summary += f"   • Colonnes: {stat['nombre_colonnes']}\n"
+            if stat['chiffre_affaires'] > 0:
+                stats_summary += f"   • Chiffre d'affaires: {stat['chiffre_affaires']:,.2f} MGA\n"
+                total_ca += stat['chiffre_affaires']
+            if stat['nombre_transactions'] > 0:
+                stats_summary += f"   • Transactions: {stat['nombre_transactions']:,}\n"
+                total_transactions += stat['nombre_transactions']
+            if stat['montant_reductions'] > 0:
+                stats_summary += f"   • Réductions: {stat['montant_reductions']:,.2f} MGA\n"
+                total_reductions += stat['montant_reductions']
+            if stat['donnees_manquantes'] > 0:
+                stats_summary += f"   • Données manquantes: {stat['donnees_manquantes']}\n"
+            stats_summary += "\n"
+        
+        stats_summary += f"📈 TOTAUX GLOBAUX:\n"
+        stats_summary += f"   • Chiffre d'affaires total: {total_ca:,.2f} MGA\n"
+        stats_summary += f"   • Nombre total de transactions: {total_transactions:,}\n"
+        stats_summary += f"   • Montant total des réductions: {total_reductions:,.2f} MGA\n"
+        
         analysis_prompt = f"""
-ANALYSE SWIS MADAGASCAR - RAPPORT AUTOMATIQUE
+ANALYSE SWIS MADAGASCAR - RAPPORT COMPLET
 
-FICHIERS ANALYSÉS:
-{file_list_text}
+{stats_summary}
 
-INSTRUCTIONS:
-1. Identifiez les anomalies financières et de stock
-2. Localisez précisément chaque problème
-3. Quantifiez l'impact
-4. Proposez des corrections
+🔍 STRUCTURE LOGIQUE DE L'ANALYSE SIMPLIFIÉE :
 
-FORMAT:
-🚨 ANOMALIE DÉTECTÉE
-📁 Fichier: [Nom]
-📍 Localisation: [Ligne/Colonne]
-🔎 Description: [Problème]
-💰 Impact: [Montant/Quantité]
-✅ Recommandation: [Solution]
+🎯 ÉTAPE 1 - COLLECTE DES FICHIERS
+• Recherche, chargement et préparation de tous les fichiers nécessaires
+• Vérification de l'intégrité et de la complétude des données
 
-Analysez par ordre de criticité.
+🎯 ÉTAPE 2 - VÉRIFICATION INTERNE  
+• Analyse individuelle de chaque fichier
+• Détection des erreurs internes : valeurs manquantes, doublons, incohérences locales
+• Identification des anomalies structurelles
+
+🎯 ÉTAPE 3 - VÉRIFICATION CROISÉE
+• Comparaison des fichiers entre eux
+• Repérage des différences et contradictions dans les données communes
+• Identification des écarts inter-fichiers
+
+🎯 ÉTAPE 4 - INTERPRÉTATION
+• Évaluation de la gravité des anomalies détectées
+• Analyse des causes racines possibles
+• Estimation de l'impact sur la fiabilité des données
+
+🎯 ÉTAPE 5 - RECOMMANDATIONS
+• Formulation de propositions concrètes pour corriger les anomalies
+• Suggestions d'amélioration pour la cohérence future
+• Hiérarchisation des actions par criticité
+
+🎯 ÉTAPE 6 - RAPPORT FINAL
+• Génération d'un résumé clair et structuré
+• Présentation des résultats et du taux de conformité global
+• Identification des axes d'amélioration prioritaires
+
+📊 FORMAT DE RAPPORT OBLIGATOIRE :
+
+🚨 **ANOMALIE DÉTECTÉE**
+📁 Fichier: [Nom du fichier concerné]
+📍 Localisation: [Ligne/Colonne/Zone précise]
+🔎 Description: [Description détaillée du problème]
+💰 Impact: [Montant estimé en MGA ou quantité]
+🎯 Cause: [Analyse de la cause racine]
+✅ Recommandation: [Solution corrective concrète]
+
+CRITÈRES DE CRITICITÉ:
+• 🔴 CRITIQUE: Impact financier > 1,000,000 MGA ou risque opérationnel grave
+• 🟡 MOYEN: Impact entre 100,000 et 1,000,000 MGA
+• 🟢 FAIBLE: Impact < 100,000 MGA ou anomalie mineure
+
+PRÉSENTEZ LES RÉSULTATS PAR ORDRE DE CRITICITÉ DÉCROISSANTE.
 """
         
         contents.append(analysis_prompt)
@@ -544,6 +928,13 @@ Analysez par ordre de criticité.
         else:
             # Extraction des statistiques d'anomalies
             anomaly_stats = extract_anomaly_stats(response_text)
+            
+            # Extraction des anomalies détaillées pour le stockage structuré
+            anomalies_detailed = extract_detailed_anomalies(response_text, file_names_list)
+            
+            # Sauvegarde des anomalies détaillées dans la base de données
+            if anomalies_detailed:
+                _save_detailed_anomalies(cursor, thread_id, anomalies_detailed)
 
     except HTTPException:
         raise
@@ -588,8 +979,150 @@ Analysez par ordre de criticité.
         "thread_id": thread_id, 
         "response": response_text,
         "status": final_status,
-        "anomaly_stats": anomaly_stats
+        "anomaly_stats": anomaly_stats,
+        "anomalies_detailed": anomalies_detailed,
+        "file_statistics": file_statistics
     }
+
+# --- Nouveaux endpoints pour les données enrichies ---
+
+@app.get("/api/thread/{thread_id}/anomalies")
+async def get_thread_anomalies(thread_id: int):
+    """Récupère les anomalies détaillées pour un thread spécifique."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                anomalie_id,
+                fichier_source,
+                type_anomalie,
+                description,
+                localisation,
+                impact_estime,
+                criticite,
+                recommandation,
+                date_detection
+            FROM ANOMALIES_DETAILLEES
+            WHERE thread_id = ?
+            ORDER BY 
+                CASE criticite
+                    WHEN 'Élevée' THEN 1
+                    WHEN 'Moyenne' THEN 2
+                    WHEN 'Faible' THEN 3
+                    ELSE 4
+                END,
+                impact_estime DESC
+        """, (thread_id,))
+        
+        anomalies = []
+        for row in cursor.fetchall():
+            anomalies.append({
+                "id": row["anomalie_id"],
+                "fichier_source": row["fichier_source"],
+                "type_anomalie": row["type_anomalie"],
+                "description": row["description"],
+                "localisation": row["localisation"],
+                "impact_estime": float(row["impact_estime"]) if row["impact_estime"] else 0,
+                "criticite": row["criticite"],
+                "recommandation": row["recommandation"],
+                "date_detection": row["date_detection"]
+            })
+        
+        # Calcul des statistiques
+        total_anomalies = len(anomalies)
+        anomalies_critiques = len([a for a in anomalies if a["criticite"] == "Élevée"])
+        anomalies_moyennes = len([a for a in anomalies if a["criticite"] == "Moyenne"])
+        anomalies_faibles = len([a for a in anomalies if a["criticite"] == "Faible"])
+        impact_total = sum(a["impact_estime"] for a in anomalies)
+        
+        return {
+            "thread_id": thread_id,
+            "anomalies": anomalies,
+            "statistiques": {
+                "total_anomalies": total_anomalies,
+                "anomalies_critiques": anomalies_critiques,
+                "anomalies_moyennes": anomalies_moyennes,
+                "anomalies_faibles": anomalies_faibles,
+                "impact_total": round(impact_total, 2),
+                "impact_moyen": round(impact_total / total_anomalies, 2) if total_anomalies > 0 else 0
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur récupération anomalies thread {thread_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des anomalies.")
+    finally:
+        if conn:
+            conn.close()
+
+@app.get("/api/thread/{thread_id}/statistics")
+async def get_thread_statistics(thread_id: int):
+    """Récupère les statistiques des fichiers pour un thread spécifique."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                nom_fichier,
+                type_fichier,
+                nombre_lignes,
+                nombre_colonnes,
+                chiffre_affaires,
+                nombre_transactions,
+                montant_reductions,
+                donnees_manquantes
+            FROM STATISTIQUES_FICHIERS
+            WHERE thread_id = ?
+            ORDER BY nom_fichier
+        """, (thread_id,))
+        
+        statistics = []
+        for row in cursor.fetchall():
+            statistics.append({
+                "nom_fichier": row["nom_fichier"],
+                "type_fichier": row["type_fichier"],
+                "nombre_lignes": row["nombre_lignes"],
+                "nombre_colonnes": row["nombre_colonnes"],
+                "chiffre_affaires": float(row["chiffre_affaires"]) if row["chiffre_affaires"] else 0,
+                "nombre_transactions": row["nombre_transactions"] or 0,
+                "montant_reductions": float(row["montant_reductions"]) if row["montant_reductions"] else 0,
+                "donnees_manquantes": row["donnees_manquantes"] or 0
+            })
+        
+        # Calcul des totaux
+        total_files = len(statistics)
+        total_lignes = sum(s["nombre_lignes"] for s in statistics)
+        total_ca = sum(s["chiffre_affaires"] for s in statistics)
+        total_transactions = sum(s["nombre_transactions"] for s in statistics)
+        total_reductions = sum(s["montant_reductions"] for s in statistics)
+        total_manquantes = sum(s["donnees_manquantes"] for s in statistics)
+        
+        return {
+            "thread_id": thread_id,
+            "statistics": statistics,
+            "totals": {
+                "total_files": total_files,
+                "total_lignes": total_lignes,
+                "total_ca": round(total_ca, 2),
+                "total_transactions": total_transactions,
+                "total_reductions": round(total_reductions, 2),
+                "total_manquantes": total_manquantes
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur récupération statistiques thread {thread_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des statistiques.")
+    finally:
+        if conn:
+            conn.close()
+
+# --- Endpoints historiques ---
 
 @app.get("/api/history")
 async def get_history(limit: int = 50, offset: int = 0):
@@ -605,7 +1138,8 @@ async def get_history(limit: int = 50, offset: int = 0):
                 title, 
                 date_modification,
                 (SELECT COUNT(*) FROM MESSAGES WHERE thread_id = THREADS.thread_id) as message_count,
-                (SELECT statut FROM MESSAGES WHERE thread_id = THREADS.thread_id ORDER BY date_message DESC LIMIT 1) as last_status
+                (SELECT statut FROM MESSAGES WHERE thread_id = THREADS.thread_id ORDER BY date_message DESC LIMIT 1) as last_status,
+                (SELECT COUNT(*) FROM ANOMALIES_DETAILLEES WHERE thread_id = THREADS.thread_id) as anomaly_count
             FROM THREADS
             ORDER BY date_modification DESC
             LIMIT ? OFFSET ?
@@ -618,7 +1152,8 @@ async def get_history(limit: int = 50, offset: int = 0):
                 "title": row["title"],
                 "date": row["date_modification"],
                 "message_count": row["message_count"],
-                "last_status": row["last_status"] or "Succès"
+                "last_status": row["last_status"] or "Succès",
+                "anomaly_count": row["anomaly_count"] or 0
             })
             
         cursor.execute("SELECT COUNT(*) as total FROM THREADS")
